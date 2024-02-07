@@ -1,0 +1,176 @@
+---
+title: "HW 2 - Data Wrangling and Exploration"
+subtitle: "Data wrangling and exploration for final assignment"
+author: "Briana Barajas"
+date: 2024-02-01
+toc: true
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+# Part 2a
+
+## Preparation
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(message = FALSE)
+```
+
+Load libraries
+
+```{r}
+library(tidyverse)
+library(here)
+library(janitor)
+library(ggridges)
+```
+
+Read in data
+
+```{r}
+# capture, mark, remark frog survey data 
+frogs_raw <- read_csv(here('data','cmrData.csv')) %>% 
+  clean_names()
+
+# data on water/environmental conditions 
+water_raw <- read_csv(here('data', 'waterCov.csv')) %>% 
+  clean_names()
+
+```
+
+## Data Wrangling
+
+The `water` data is already calculated as averages, so it only needed to be filtered to the area of interest.
+
+```{r}
+# wrangle water data
+water <- water_raw %>% 
+  
+  # filter to Middle Jack reach
+  filter(reach == 'Middle Jack') %>% 
+  
+  # convert year to factor
+  mutate(year = as.factor(year))
+
+```
+
+The primary wrangling issue is with `frog` data set, which has several columns that have headers designating both year, and visit number. This is additional information that should be in the data frame, so `pivot_longer()` will be useful here.
+
+```{r}
+frogs <- frogs_raw %>%
+  
+  # filter reach to Middle Jack, site where drought excavation occurred
+  filter(reach == 'Middle Jack') %>% 
+  
+  
+  # pivot data making the col header (year_visit) one column, and whether or not an individual frog was found is a different column (frog_detected)
+  pivot_longer(cols = 5:43,
+               names_to = 'year_visit',
+               values_to = 'frog_detected') %>% 
+  
+  # split year and visit number into two columns %>% 
+  separate(year_visit, 
+           c('year', 'visit'),
+           '_') %>% 
+  
+  # remove x that precedes the year (x2010, x2011, etc)
+  mutate(year = str_remove(year, 'x')) %>% 
+  
+  # change year to date objected
+  mutate(year = as.factor(year)) %>% 
+  
+  # group visits together so `frog_detected` has values of 0 and 1, where 1 means a frog was detected at least once in any of the three annual visits
+  group_by(sex, tag, year) %>%
+  summarise(frog_detected = sum(frog_detected)) %>% 
+  mutate(frog_detected = ifelse(frog_detected != 0, 1, 0))
+
+# prep raw data to re-join to frogs to keep length(sul) measurements
+frogs_raw <- frogs_raw %>%
+  
+  # remove unwrangled year columns
+  select(-starts_with('x')) %>% 
+  
+  # rename sul column
+  rename(sul_mm = sul)
+
+# re-join data
+frogs <- left_join(frogs, frogs_raw, by = c('tag','sex'))
+
+
+```
+
+## Joining the data
+
+Now that all data is filtered to the location of interest, the `water` and `frogs` dataframes can be joined by year. I decided to start with a full join, and remove columns from there.
+
+```{r}
+frogs_env <- frogs %>% 
+  
+  # full join frog data to water data by the year column
+  full_join(water, by = c('year', 'reach'))
+
+# I like to remove extra variables from my environment after wrangling
+rm(frogs_raw, water_raw)
+```
+
+## Preliminary Data Exploration
+
+Plot frogs detected per year, highlighting year where excavation occurred for drought mitigation.
+
+```{r}
+frogs_env %>% 
+  group_by(year) %>% 
+  summarise(sum_frog_detected = sum(frog_detected)) %>%
+  ggplot() +
+  geom_col(aes(x = year, y = sum_frog_detected)) +
+  geom_vline(xintercept = '2014', color = 'black')
+
+
+```
+
+Look at frog size distribution over the years.
+
+```{r}
+frogs_env %>%
+  # only want to account for frogs found, or 
+  filter(frog_detected == 1) %>% 
+  group_by(year, sex) %>%
+  summarise(mean_sul_mm = mean(sul_mm)) %>% 
+  ggplot() +
+  geom_boxplot(aes(x = year, y = mean_sul_mm)) +
+  geom_vline(xintercept = '2014', color = 'black')
+```
+
+Look how NDVI has changed over the years. NDVI is being used as an indicator of vegetation health due to water availability.
+
+```{r}
+ggplot(water) +
+  geom_col(aes(y = md_ndvi, x = year)) +
+  geom_vline(xintercept = '2014', color = 'black')
+```
+
+View distribution of size
+
+```{r}
+frogs_env %>% 
+  filter(frog_detected == 1) %>% 
+  ggplot() +
+  geom_density_ridges(aes(x = sul_mm, y = year, scale = 1)) +
+  geom_hline(yintercept = '2014', color = 'blue')
+  
+```
+
+# Part 2b
+
+1.  What have you learned about your data? Have any potentially interesting patterns emerged? (5-8 sentences)
+
+    **ANS:** I learned that the data was not evenly collected in all fives sites (`reach` column). Additionally, only 1/5 sites had the treatment (excavation for drought mitigation) applied. With this in mind, I decided to narrow down my analysis to the most sampled reach. Luckily, I reviewed the metadata and found that the `waterCov.csv` file would be a great way to supplement my analysis. This data frame includes information on the normalized difference vegetation index (NDVI) around the reaches, which can be used as another measure of excavation success. The most noticeable trend in my plots was the decrease in mean frog size after excavation in 2014. I plan to dive into this trend a bit more in the following assignments.
+
+2.  In HW #1, you outlined some questions that you wanted to answer using these data. Have you made any strides towards answering those questions? If yes, how so? If no, what next steps do you need to take (e.g. I need to create X plot type, I still need to track down Y data, I need to restructure existing data so that you can visualize it in Z ways, etc.)? **(8-12 sentences)**
+
+    **ANS:** After the data wrangling and exploration I found that I need to slightly shift my question. I was hoping to compare at least two reaches, where one reach was treated for drought and another was not. As mentioned above, only one reach was treated with the excavation. Thankfully, this data spans multiple years, including before and after the conservation efforts in 2014 so I can focus on the single treatment group. I used a simple x-axis line to draw attention to 2014, but I would like to improve the distiction between pre-mitigation and post-mitigation years. Moving forward, I want to conduct a simple statistical analysis so I can convert frog presence, to a probability that demonstrates the likelihood of seeing the same frog the following year. I would like to explore my visualization options more, but suspect that bar plots or histograms might be the best method for visualizing probability. Finally, the original paper mentions data collected on frog egg masses that were not included in my original data download. I want to return to the USGS portal and see if there are additional data publications that are associated with the same study. Finding this additional variable would allow me to better estimate survival, despite being limited to a single reach.
+
+3.  What challenges do you foresee encountering with your data? These can be data wrangling and / or visualization challenges. **(4-6 sentences)**
+
+    **ANS:** My primary concern is deciding how to calculate averages or probabilities that can answer my question more clearly without dramatically reducing the data. Using a probability could make it easier to visualize the relationship between additional variables, such as NDVI and precipitation. I also have to consider how to utilize the `sex` column. There is likely a strong relationship between size (`sul_mm`) and `sex`, but the more subgroups I choose to highlight, the more crowded my figure can become.

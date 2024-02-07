@@ -1,0 +1,142 @@
+---
+title: "HW 2 - Data Wrangling and Exploration"
+subtitle: "Data wrangling and exploration for final assignment"
+author: "Briana Barajas"
+date: 2024-02-01
+toc: true
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+## Preparation
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(message = FALSE)
+```
+
+Libraries
+
+```{r}
+library(tidyverse)
+library(here)
+library(janitor)
+library(ggridges)
+```
+
+Read Data
+
+```{r}
+# capture, mark, remark frog survey data 
+frogs_raw <- read_csv(here('data','cmrData.csv')) %>% 
+  clean_names()
+
+# data on water/environmental conditions 
+water_raw <- read_csv(here('data', 'waterCov.csv')) %>% 
+  clean_names()
+
+```
+
+## Wrangle and Join
+
+Wrangle `water` and `frogs` data, then join
+```{r}
+## ==========================================
+##            wrangle water data         ----
+## ==========================================
+
+water <- water_raw %>% 
+  
+  # filter to Middle Jack reach
+  filter(reach == 'Middle Jack') %>% 
+  
+  # convert year to factor
+  mutate(year = as.factor(year))
+
+## ==========================================
+##            wrangle frog data         ----
+## ==========================================
+frogs <- frogs_raw %>%
+  
+  # filter reach to Middle Jack
+  filter(reach == 'Middle Jack') %>% 
+  
+  
+  # make the col header (year_visit) one column, and frog_detected col
+  pivot_longer(cols = 5:43,
+               names_to = 'year_visit',
+               values_to = 'frog_detected') %>% 
+  
+  # split year and visit number into two columns %>% 
+  separate(year_visit, 
+           c('year', 'visit'),
+           '_') %>% 
+  
+  # remove x that precedes the year (x2010, x2011, etc)
+  mutate(year = str_remove(year, 'x')) %>% 
+  
+  # change year to date objected
+  mutate(year = as.factor(year)) %>% 
+  
+  # combine annual visits
+  group_by(sex, tag, year) %>%
+  summarise(frog_detected = sum(frog_detected)) %>% 
+  mutate(frog_detected = ifelse(frog_detected != 0, 1, 0))
+
+## ==========================================
+##             join all data             ----
+## ==========================================
+# prep raw data to re-join to frogs to keep length(sul) measurements
+frogs_raw <- frogs_raw %>%
+  
+  select(-starts_with('x')) %>% # remove unwrangled year columns
+  rename(sul_mm = sul) # rename sul column
+
+
+# re-join data
+frogs <- left_join(frogs, frogs_raw, by = c('tag','sex'))
+
+# final df join, environmental factors and frog 
+frogs_env <- frogs %>% 
+  
+  full_join(water, by = c('year', 'reach')) # full join frog data to water data by the year column
+
+# remove extra variables from env
+rm(frogs_raw, water_raw)
+```
+## Calculate Probability
+Calculating the probability that an individual from will be seen the next year
+
+
+```{r}
+# calculate proportion of individuals that were found every year 
+frog_prop <- frogs_env %>% 
+  
+  # create 3 key size categories
+  mutate(sul_mm = as.numeric(sul_mm)) %>% 
+  mutate(size_group = case_when(sul_mm <= 54 ~ "small",
+                                sul_mm > 54 & sul_mm < 66 ~ "medium",
+                                sul_mm >= 66 ~ "large")) %>%
+  
+  # calculate annual proportion of surveyed/survived based on size
+  group_by(year, size_group) %>% 
+  summarise(prop_detected = sum(frog_detected)/n())
+
+# plot results
+frog_prop %>% 
+  ggplot() +
+  geom_vline(xintercept = "2014", linetype = 2) +
+  geom_bar(aes(x = year, y = prop_detected, fill = size_group),
+           position = "stack", stat = "identity") +
+  theme_bw() +
+  scale_fill_manual(values = c('#a3b18a','#588157','#344e41')) +
+  labs(x = "Year",
+       y = "Proportion Frogs Detected",
+       title = "Proportion of Frogs Found in Capture-mark-release Surveys",
+       fill = "Relative Size") +
+  annotate("text", x = "2014",y = Inf, 
+           label = "ponds excavated to
+    mitigate drought", size = 3,
+           hjust = -0.1, vjust = 1.7)
+```
+
