@@ -166,7 +166,7 @@ frog_prop %>%
   annotate("text", x = "2014",y = Inf, 
            label = "ponds excavated to
     mitigate drought", size = 3,
-           hjust = -0.1, vjust = 1.7)
+    hjust = -0.1, vjust = 1.7)
 ```
 
 ## END HW 2, START HW3
@@ -182,18 +182,85 @@ eggs %>%
 
 View how different sexes did over the years
 ```{r}
-# prep data for dumbell plot
-frog_prop <- frogs %>% 
+# prep count data for dumbbell plot
+frog_d <- frogs %>% 
   
-  # calculate annual proportion of surveyed/survived based on size
+  # calculate sum of surveyed frogs based on sex
   group_by(year, sex) %>% 
   summarise(frog_count = sum(frog_detected)) %>% 
   
-  mutate(year = as.numeric(as.character(year)))
+  # change year to numeric for plot type
+  mutate(year = as.numeric(as.character(year))) %>% 
+  
+  # pivot so start/end points are in different columns
+  pivot_wider(names_from = sex, values_from = frog_count)
 
-# plot individuals of different sex over time
-ggplot(frog_prop) +
-  geom_line(aes(x = year, y = frog_count, col = sex))
+# dumbell plot sex
+ggplot(frog_d) +
+  geom_segment(aes(x = female, xend = male,
+                   y = year, yend = year), linewidth = 0.7) +
+  geom_point(aes(x = female, y = year), col = "#F35C4A", size = 4) +
+  geom_point(aes(x = male, y = year), col = "#A3B18A", size = 4) +
+  theme_classic()
+
 ```
 
+
+```{r}
+# calculate proportion of individuals that were found every year 
+frog_line <- frogs_env %>% 
+  
+  # create 3 key size categories
+  mutate(sul_mm = as.numeric(sul_mm)) %>% 
+  mutate(size_group = case_when(sul_mm <= 54 ~ "small",
+                                sul_mm > 54 & sul_mm < 66 ~ "medium",
+                                sul_mm >= 66 ~ "large")) %>%
+  
+  # calculate annual proportion of surveyed/survived based on size
+  group_by(year, size_group) %>% 
+  summarise(count = sum(frog_detected)) %>% 
+  
+  # update yr column data type
+  mutate(year = as.numeric(as.character(year)))
+
+# plot yearly
+frog_line %>% 
+ggplot() +
+  geom_vline(xintercept = 2014, linetype = 2) +
+  geom_line(aes(x = year, y = count, col = size_group),
+            linewidth = 1) +
+  scale_color_manual(values = c('#f46036','#2e294e','#17c3b2')) +
+  geom_point(aes(x = year, y = count, col = size_group)) + 
+  theme_classic() +
+  labs(col = "Relative Size", y = "No. Frogs Re-Captured", x = "Year",
+       title = "Capture-Mark-Recapture Surveys (Jack Creek, Oregon)") +
+    annotate("text", x = 2014,y = Inf, 
+           label = "          drought mitigation\n(addition of excavated ponds)", size = 3,
+    hjust = -0.1, vjust = 1.7) +
+  scale_x_continuous(breaks = c(2009:2021, 3)) +
+  theme(plot.title = element_text(size = 14))
+```
+
+
+
+```{r}
+ndvi_line <- frogs_env %>% 
+  
+  # frog counts by sex
+  group_by(year, sex) %>% 
+  summarise(count = sum(frog_detected)) %>% 
+  
+  # join with precipitation data
+  left_join(y = water, by = "year") %>% 
+  
+  # make year numeric
+  mutate(year = as.numeric(as.character(year))) %>% 
+  
+  # remove 2009 because it doesn't have precipitation data
+  filter(year != 2009)
+
+ggplot(ndvi_line) +
+  geom_line(aes(x = count, y = precip_accum, col = sex))
+
+```
 
