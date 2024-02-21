@@ -23,6 +23,7 @@ library(here)
 library(janitor)
 library(ggridges)
 library(readxl)
+library(fmsb)
 ```
 
 Read Data
@@ -263,4 +264,33 @@ ggplot(ndvi_line) +
   geom_line(aes(x = count, y = precip_accum, col = sex))
 
 ```
+
+
+```{r}
+frogs_radar <- frogs %>% ungroup() %>% 
+  group_by(sex, year) %>% 
+  select(-c("tag", "reach", "sul_mm")) %>%
+  summarise(count = sum(frog_detected)) %>% 
+  pivot_wider(names_from = year, values_from = count) %>% 
+  ungroup() %>% 
+  select(-c(sex))
+
+rownames(frogs_radar) <- c("female", "male")
+frogs_radar <- rbind(rep(25,5) , rep(0,5) , frogs_radar)
+  
+radarchart(frogs_radar, 
+           pcol = c("#F35C4A", "#A3B18A"), # color line
+           plwd = 3, plty = 1, # line width and type
+           cglcol = "darkgrey", cglty = 1,
+           title = "Annual Frog Count Surveys at Jack Creek, Oregon")
+
+legend(x=.9, y=1.2, legend = c("female", "male"),
+       bty = "n", pch=20 , 
+       col=c("#F35C4A", "#A3B18A") , 
+       text.col = "black", cex=1.2, pt.cex=3)
+
+
+```
+
+
 
