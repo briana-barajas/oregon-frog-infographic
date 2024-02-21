@@ -12,7 +12,7 @@ editor_options:
 ## Preparation
 
 ```{r, include=FALSE}
-knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
 Libraries
@@ -22,18 +22,22 @@ library(tidyverse)
 library(here)
 library(janitor)
 library(ggridges)
+library(readxl)
 ```
 
 Read Data
 
 ```{r}
 # capture, mark, remark frog survey data 
-frogs_raw <- read_csv(here('data','cmrData.csv')) %>% 
+frogs_raw <- read_csv(here("data", "frog_cmr", "cmrData.csv")) %>% 
   clean_names()
 
 # data on water/environmental conditions 
-water_raw <- read_csv(here('data', 'waterCov.csv')) %>% 
+water_raw <- read_csv(here("data","frog_cmr", "waterCov.csv")) %>% 
   clean_names()
+
+# data on egg masses
+eggs_raw <- read_xlsx(here("data", "egg_mass", "frog-monitoring-observations.xlsx")) %>% clean_names()
 
 ```
 
@@ -54,22 +58,22 @@ water <- water_raw %>%
   mutate(year = as.factor(year))
 
 ## ==========================================
-##            wrangle frog data         ----
+##         wrangle frog data         ----
 ## ==========================================
+
 frogs <- frogs_raw %>%
   
   # filter reach to Middle Jack
-  filter(reach == 'Middle Jack') %>% 
-  
+  filter(reach == "Middle Jack") %>% 
   
   # make the col header (year_visit) one column, and frog_detected col
   pivot_longer(cols = 5:43,
-               names_to = 'year_visit',
-               values_to = 'frog_detected') %>% 
+               names_to = "year_visit",
+               values_to = "frog_detected") %>% 
   
   # split year and visit number into two columns %>% 
   separate(year_visit, 
-           c('year', 'visit'),
+           c("year", "visit"),
            '_') %>% 
   
   # remove x that precedes the year (x2010, x2011, etc)
@@ -82,6 +86,30 @@ frogs <- frogs_raw %>%
   group_by(sex, tag, year) %>%
   summarise(frog_detected = sum(frog_detected)) %>% 
   mutate(frog_detected = ifelse(frog_detected != 0, 1, 0))
+
+## ==========================================
+##         wrangle egg mass data         ----
+## ==========================================
+eggs <- eggs_raw %>% 
+  
+  # rename site_id to reach name
+  rename(reach = site_id) %>% 
+  
+  # filter reach to Middle Jack
+  filter(reach == "Middle Jack") %>% 
+  
+  # select key columns
+  select(c(survey_date, count, life_stage)) %>% 
+  
+  # update survey_date to date-time object
+  mutate(survey_date = as.Date(survey_date),
+         year = year(survey_date)) %>% 
+  
+  # count egg masses per year
+  group_by(life_stage, year) %>% 
+  summarise(count = sum(count))
+
+
 
 ## ==========================================
 ##             join all data             ----
@@ -102,13 +130,14 @@ frogs_env <- frogs %>%
   full_join(water, by = c('year', 'reach')) # full join frog data to water data by the year column
 
 # remove extra variables from env
-rm(frogs_raw, water_raw)
+rm(frogs_raw, water_raw, eggs_raw)
 ```
+
 ## Calculate Probability
 Calculating the probability that an individual from will be seen the next year
 
 
-```{r}
+```{r, eval=FALSE}
 # calculate proportion of individuals that were found every year 
 frog_prop <- frogs_env %>% 
   
@@ -139,4 +168,32 @@ frog_prop %>%
     mitigate drought", size = 3,
            hjust = -0.1, vjust = 1.7)
 ```
+
+## END HW 2, START HW3
+
+Plot different life stage surveys over the years
+```{r}
+eggs %>% 
+  ggplot(aes(x = year, y = count, col = life_stage)) +
+  geom_line(linewidth = 1.2) +
+  geom_point() +
+  theme_bw()
+```
+
+View how different sexes did over the years
+```{r}
+# prep data for dumbell plot
+frog_prop <- frogs %>% 
+  
+  # calculate annual proportion of surveyed/survived based on size
+  group_by(year, sex) %>% 
+  summarise(frog_count = sum(frog_detected)) %>% 
+  
+  mutate(year = as.numeric(as.character(year)))
+
+# plot individuals of different sex over time
+ggplot(frog_prop) +
+  geom_line(aes(x = year, y = frog_count, col = sex))
+```
+
 
