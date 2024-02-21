@@ -240,6 +240,9 @@ ggplot() +
     hjust = -0.1, vjust = 1.7) +
   scale_x_continuous(breaks = c(2009:2021, 3)) +
   theme(plot.title = element_text(size = 14))
+
+# add species name
+# image different frog sizes
 ```
 
 
@@ -282,14 +285,16 @@ radarchart(frogs_radar,
            pcol = c("#F35C4A", "#A3B18A"), # color line
            plwd = 3, plty = 1, # line width and type
            cglcol = "darkgrey", cglty = 1,
-           title = "Annual Frog Count Surveys at Jack Creek, Oregon")
+           title = "Annual Frog Count Surveys at Jack Creek, Oregon")[]
 
 legend(x=.9, y=1.2, legend = c("female", "male"),
        bty = "n", pch=20 , 
        col=c("#F35C4A", "#A3B18A") , 
        text.col = "black", cex=1.2, pt.cex=3)
 
-
+# add count data
+# change order of years (but really years isn't conventional)
+# add count values for each radial point
 ```
 
 
