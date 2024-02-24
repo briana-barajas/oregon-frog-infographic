@@ -50,22 +50,24 @@ Wrangle `water` and `frogs` data, then join
 ##            wrangle water data         ----
 ## ==========================================
 
-water <- water_raw %>% 
-  
-  # filter to Middle Jack reach
-  filter(reach == 'Middle Jack') %>% 
-  
-  # convert year to factor
-  mutate(year = as.factor(year))
+# water <- water_raw %>% 
+#   
+#   # filter to Middle Jack reach
+#   filter(reach == 'Middle Jack') %>% 
+#   
+#   # convert year to factor
+#   mutate(year = as.factor(year))
 
 ## ==========================================
 ##         wrangle frog data         ----
 ## ==========================================
 
+## .........create primary data frame............
+
 frogs <- frogs_raw %>%
   
   # filter reach to Middle Jack
-  filter(reach == "Middle Jack") %>% 
+  filter(reach %in% c("Middle Jack", "Upper Jamison")) %>% 
   
   # make the col header (year_visit) one column, and frog_detected col
   pivot_longer(cols = 5:43,
@@ -80,58 +82,68 @@ frogs <- frogs_raw %>%
   # remove x that precedes the year (x2010, x2011, etc)
   mutate(year = str_remove(year, 'x')) %>% 
   
-  # change year to date objected
-  mutate(year = as.factor(year)) %>% 
+  # rename size to include units
+  rename(sul_mm = sul) %>% 
   
-  # combine annual visits
-  group_by(sex, tag, year) %>%
+  # add size grouping categorical 
+  mutate(sul_mm = as.numeric(sul_mm)) %>% 
+  mutate(size_group = case_when(sul_mm <= 54 ~ "small",
+                                sul_mm > 54 & sul_mm < 66 ~ "medium",
+                                sul_mm >= 66 ~ "large")) %>% 
+  mutate(size_group = as.factor(size_group)) %>% 
+  
+  # combine frog_detected so individuals are only counted once per year
+  group_by(year, reach, tag, sex, sul_mm, size_group) %>% #group by to keep cols
   summarise(frog_detected = sum(frog_detected)) %>% 
-  mutate(frog_detected = ifelse(frog_detected != 0, 1, 0))
+  mutate(frog_detected = ifelse(frog_detected != 0, 1, 0)) %>% 
+  ungroup()
+
+  
 
 ## ==========================================
 ##         wrangle egg mass data         ----
 ## ==========================================
-eggs <- eggs_raw %>% 
-  
-  # rename site_id to reach name
-  rename(reach = site_id) %>% 
-  
-  # filter reach to Middle Jack
-  filter(reach == "Middle Jack") %>% 
-  
-  # select key columns
-  select(c(survey_date, count, life_stage)) %>% 
-  
-  # update survey_date to date-time object
-  mutate(survey_date = as.Date(survey_date),
-         year = year(survey_date)) %>% 
-  
-  # count egg masses per year
-  group_by(life_stage, year) %>% 
-  summarise(count = sum(count))
+# eggs <- eggs_raw %>% 
+#   
+#   # rename site_id to reach name
+#   rename(reach = site_id) %>% 
+#   
+#   # filter reach to Middle Jack
+#   filter(reach == "Middle Jack") %>% 
+#   
+#   # select key columns
+#   select(c(survey_date, count, life_stage)) %>% 
+#   
+#   # update survey_date to date-time object
+#   mutate(survey_date = as.Date(survey_date),
+#          year = year(survey_date)) %>% 
+#   
+#   # count egg masses per year
+#   group_by(life_stage, year) %>% 
+#   summarise(count = sum(count))
 
 
 
 ## ==========================================
 ##             join all data             ----
 ## ==========================================
-# prep raw data to re-join to frogs to keep length(sul) measurements
-frogs_raw <- frogs_raw %>%
-  
-  select(-starts_with('x')) %>% # remove unwrangled year columns
-  rename(sul_mm = sul) # rename sul column
-
-
-# re-join data
-frogs <- left_join(frogs, frogs_raw, by = c('tag','sex'))
-
-# final df join, environmental factors and frog 
-frogs_env <- frogs %>% 
-  
-  full_join(water, by = c('year', 'reach')) # full join frog data to water data by the year column
-
-# remove extra variables from env
-rm(frogs_raw, water_raw, eggs_raw)
+# # prep raw data to re-join to frogs to keep length(sul) measurements
+# frogs_raw <- frogs_raw %>%
+#   
+#   select(-starts_with('x')) %>% # remove unwrangled year columns
+#   rename(sul_mm = sul) # rename sul column
+# 
+# 
+# # re-join data
+# frogs <- left_join(frogs, frogs_raw, by = c('tag','sex'))
+# 
+# # final df join, environmental factors and frog 
+# frogs_env <- frogs %>% 
+#   
+#   full_join(water, by = c('year', 'reach')) # full join frog data to water data by the year column
+# 
+# # remove extra variables from env
+#rm(frogs_raw, water_raw, eggs_raw)
 ```
 
 ## Calculate Probability
@@ -170,7 +182,7 @@ frog_prop %>%
     hjust = -0.1, vjust = 1.7)
 ```
 
-## END HW 2, START HW3
+## END HW 2, START HW3 SECTION PREP 
 
 Plot different life stage surveys over the years
 ```{r}
@@ -206,7 +218,7 @@ ggplot(frog_d) +
 
 ```
 
-
+GOOD line plot of frogs over the year
 ```{r}
 # calculate proportion of individuals that were found every year 
 frog_line <- frogs_env %>% 
@@ -245,8 +257,7 @@ ggplot() +
 # image different frog sizes
 ```
 
-
-
+NDVI x frog-count line plot
 ```{r}
 ndvi_line <- frogs_env %>% 
   
@@ -268,8 +279,8 @@ ggplot(ndvi_line) +
 
 ```
 
-
-```{r}
+Bad radar plot (submitted)
+```{r, eval = FALSE}
 frogs_radar <- frogs %>% ungroup() %>% 
   group_by(sex, year) %>% 
   select(-c("tag", "reach", "sul_mm")) %>%
@@ -298,4 +309,15 @@ legend(x=.9, y=1.2, legend = c("female", "male"),
 ```
 
 
+## Comparing sites (HW3 CONT)
+
+```{r}
+frogs %>% 
+  group_by(reach, year) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  summarise(annual_frog_count = sum(frog_detected)) %>% 
+  ggplot(aes(x = year, y = annual_frog_count, col = reach)) +
+  geom_line()
+
+```
 
