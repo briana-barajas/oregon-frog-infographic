@@ -37,9 +37,6 @@ frogs_raw <- read_csv(here("data", "frog_cmr", "cmrData.csv")) %>%
 water_raw <- read_csv(here("data","frog_cmr", "waterCov.csv")) %>% 
   clean_names()
 
-# data on egg masses
-eggs_raw <- read_xlsx(here("data", "egg_mass", "frog-monitoring-observations.xlsx")) %>% clean_names()
-
 ```
 
 ## Wrangle and Join
@@ -67,7 +64,7 @@ Wrangle `water` and `frogs` data, then join
 frogs <- frogs_raw %>%
   
   # filter reach to Middle Jack
-  filter(reach %in% c("Middle Jack", "Upper Jamison")) %>% 
+  # filter(reach %in% c("Middle Jack", "Upper Jamison")) %>% 
   
   # make the col header (year_visit) one column, and frog_detected col
   pivot_longer(cols = 5:43,
@@ -315,9 +312,25 @@ legend(x=.9, y=1.2, legend = c("female", "male"),
 frogs %>% 
   group_by(reach, year) %>% 
   mutate(year = as.numeric(year)) %>% 
-  summarise(annual_frog_count = sum(frog_detected)) %>% 
+  summarise(annual_frog_count = sum(frog_detected)) %>%
+  filter(annual_frog_count != 0) %>% 
   ggplot(aes(x = year, y = annual_frog_count, col = reach)) +
-  geom_line()
+  geom_vline(xintercept = 2014, linetype = 2) +
+  geom_line(linewidth = 1) + geom_point() + theme_minimal() 
 
+  
+
+```
+
+
+
+```{r}
+frogs %>% 
+  group_by(reach, year) %>% 
+  summarise(annual_count = sum(frog_detected)) %>% 
+  
+  ggplot() +
+  geom_col(aes(x = year, y = annual_count, fill = reach)) +
+  facet_wrap(~reach)
 ```
 
