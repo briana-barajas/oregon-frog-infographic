@@ -47,15 +47,15 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
 
 ## Prep for Assignment 4
 
-1.  Which option do you plan to pursue?
+1.  *Which option do you plan to pursue?*
 
     **ANS:** Option 2, creating an infographic.
 
-2.  Restate your question(s). Has this changed at all since HW #1? If yes, how so?
+2.  *Restate your question(s). Has this changed at all since HW #1? If yes, how so?*
 
     **ANS:** My original question from HW #1 was to examine if drought mitigation efforts at Jack Creek, Oregon had any influence on the Oregon spotted frog population. I ended up having a lot of trouble with this, as there were many gaps in the data and there failed to be any clear trends. I also tried to convert the "count" data to some metric of survival, but that proved to be even more challenging. While I was researching methods for converting count data to survival rates, I found that many of the methods used for this conversion assume you are equally likely to catch individuals from the same species, regardless of individual attributes. I decided to use this to create my new question, "Which frogs are easiest to catch?" This will be my one overarching question for the graphic, and each graph will compare some trait versus the number of frogs caught.
 
-3.  Explain which variables from your data set(s) you will use to answer your question(s).
+3.  *Explain which variables from your data set(s) you will use to answer your question(s).*
 
     1.  **ANS:** I have two data frames from the same data publication, available for download through the [USGS Database](https://www.usgs.gov/data/oregon-spotted-frog-rana-pretiosa-captures-and-after-drought-mitigation-jack-creek-oregon-2009). The `frog` data has individual frog counts, which I'll use to calculate the probability of catching a frog with a certain trait. Each frog has a unique tag number, as well as data on sex, size, and location (categorized into `reach`). The water data frame contains data on the normalized vegetation index (ndvi) that I'll use as a metric for vegetation density. Finally, I have a map of the [Oregon spotted frog range](https://ecos.fws.gov/ecp/species/6633) from the U.S. Fish and Wildlife Services, although it is solely geographic information. I summarized the variables below:
 
@@ -68,7 +68,7 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
         |   mndvi   | numeric - mean NDVI for later summer months |    USGS     |
         | range map | geographic - range maps for endangered spp  |    USFWS    |
 
-4.  In HW #2, you should have created some exploratory data viz to better understand your data. You may already have some ideas of how you plan to formally visualize your data, but it's incredibly helpful to look at visualizations by other creators for inspiration. Find at least two data visualizations that you could (potentially) borrow or adapt pieces from. Link to them or download and embed them into your `.qmd` file, and explain which elements you might borrow (e.g. the graphic form, legend design, layout, etc.).
+4.  *In HW #2, you should have created some exploratory data viz to better understand your data. You may already have some ideas of how you plan to formally visualize your data, but it's incredibly helpful to look at visualizations by other creators for inspiration. Find at least two data visualizations that you could (potentially) borrow or adapt pieces from. Link to them or download and embed them into your `.qmd` file, and explain which elements you might borrow (e.g. the graphic form, legend design, layout, etc.).*
 
     -   [Commercial fish production](https://github.com/gkaramanis/tidytuesday/tree/master/2021/2021-week23), by Georgios Karamanis
         -   I particularly like the small map of the Great Lakes, it's done subtle but still easy to read. Geographic information is not as essential to my question, but I would like to include some background on the data (i.e. why it matters). I also like the use of the fish silhouettes, and I would like to add the Oregon spotted frog or some related imagery to my graphic.
@@ -76,9 +76,11 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
         -   I enjoyed all of Dan Oehm's figures, but I thought the layout of these particular examples would work well for my data. In the Numbats example, I enjoy how the text is minimal yet still adds context to the data. Since I am comparing frog counts against three different variables (sex, location, and size) I think following the UFO layout might work well. I can create three different plots with similar aesthetics, and have a snippet of text next to them.
     -   Bonus: I saw many examples that utilized text colors that matched plot colors, which I would also like to incorporate
 
-5.  Hand-draw your anticipated three visualizations (option 1) or infographic (option 2). Take a photo of your drawing and embed it in your rendered `.qmd` file -- **note** that these are not exploratory visualizations, but rather your plan for your final visualizations that you will eventually polish and submit with HW #4
+5.  *Hand-draw your anticipated three visualizations (option 1) or infographic (option 2). Take a photo of your drawing and embed it in your rendered `.qmd` file -- **note** that these are not exploratory visualizations, but rather your plan for your final visualizations that you will eventually polish and submit with HW #4*
 
-6.  Mock up your visualizations using code. We understand that you will continue to iterate on these into HW #4 (particularly after receiving feedback), but by the end of HW #3, you should:
+    \[HERE\]
+
+6.  *Mock up your visualizations using code. We understand that you will continue to iterate on these into HW #4 (particularly after receiving feedback), but by the end of HW #3, you should:*
 
     -   have your data plotted (if you're experimenting with an advanced graphic form(s) that were not explicitly covered in class, we understand that this may take some more time to build; you should have as much put together as possible)
 
@@ -90,7 +92,7 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
 
     -   create a presentable / aesthetically-pleasing theme (e.g. (re)move gridlines / legends as appropriate, adjust font sizes, etc.)
 
-    **ANS:** Data wrangling, and preliminary-plots below
+    **ANS:** Each code chunk begins with a note on what I plan to update moving forward
 
     Data wrangling
 
@@ -132,7 +134,7 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
     Oregon Map
 
     ```{r}
-    # need to add arrow pointing at Jackson Creek, OR
+    # NOTE:need to add arrow pointing at Jackson Creek, OR
     ggplot() +
       geom_sf(data = state_map) +
       geom_sf(data = range_map, fill = "orchid") + theme_void()
@@ -141,7 +143,7 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
     Frog count vs. vegetation index
 
     ```{r}
-    # need to add annotate with frog counts for different sites
+    # NOTE: need to add annotate with frog counts for different sites
     ggplot(env, aes(x = mdNDVI, y = reach, fill = reach)) +
       
       # customize colors
@@ -172,7 +174,7 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
     Frog count vs. sex
 
     ```{r}
-    # need to change point to an image, want it to look like a frog jumping
+    # NOTE: need to change point to an image, want it to look like a frog jumping
     mf_count <- frogs %>% 
       group_by(sex) %>% 
       summarise(frog_catch = sum(frog_detected)) 
@@ -193,29 +195,54 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
       theme_minimal() +
       
       # remove gridlines
-      theme(panel.grid = element_blank(),
+      theme(panel.grid.major.x = element_blank(),
+            panel.grid.minor.x = element_blank(),
+            axis.text.x = element_blank(),
             axis.title.y = element_blank()) +
       
-      labs(x = "Frog Count")
+      labs(x = "Frog Count") +
+      
+      annotate(geom = "text", x = 349, y = 1.2, label = "350") +
+      annotate(geom = "text", x = 270, y = 2.2, label = "267")
+
+      
     ```
+
+    Frog count vs. size
 
     ```{r}
-
-    ```
-
-    ```{}
+    # NOTE: need to stretch y-axis, remove grids, and add values
+    frogs %>%
+      
+      # count frogs detected for each size
+      filter(frog_detected == 1) %>% 
+      group_by(sul_mm) %>% 
+      
+      summarise(frog_catch = sum(frog_detected)) %>% 
+      
+      # lollipop plot (trying to mimic blades of grass using lollipop or windmill)
+      ggplot(aes(x = sul_mm, y = frog_catch)) +
+      
+      
+      geom_segment( aes(x= sul_mm, xend=sul_mm, y=0, yend=frog_catch),
+                    linewidth = 2.9, col = "seagreen") +
+      geom_point(col = "seagreen", shape = 17, size = 2) +
+      
+      theme_minimal() +
+      
+      labs(y = "Frog Count", x = "Length (snout-urostyle length mm)")
     ```
 
 ## Additional Questions
 
-1.  What challenges did you encounter or anticipate encountering as you continue to build / iterate on your visualizations in R
+1.  *What challenges did you encounter or anticipate encountering as you continue to build / iterate on your visualizations in R*
 
     **ANS:** I was surprised to notice I was struggling with this project artistically. Branching out beyond the fundamental chart types was difficult, and did not seem to work well for my data. With this in mind, I played around with different variations of the fundamental charts so I could piece together a much more interesting infographic. Moving forward, I am a bit concerned about finding the balance between interpretation and stylistic choices. I have created the 3 bases for all of my charts but will adjust more of the theme elements later.
 
-2.  What ggplot extension tools/packages do you need to use to build your visualizations? Are there any that we haven't covered in class that you'll be learning how to use for your visualizations?
+2.  *What ggplot extension tools/packages do you need to use to build your visualizations? Are there any that we haven't covered in class that you'll be learning how to use for your visualizations?*
 
     **ANS:** I would like to find a way to make the `geom_point` an image, and that might require an additional package. Aside from this, I have been able to create all my figures using `ggplot2` and `ggridges`. From Data to Viz has been incredibly helpful as I was choosing visualizations that were functional, and aesthetically pleasing.
 
-3.  What feedback do you need from the instructional team and / or your peers to ensure that your intended message is clear?
+3.  *What feedback do you need from the instructional team and / or your peers to ensure that your intended message is clear?*
 
     **ANS:** I am having trouble pulling together a cohesive story and would like additional feedback. What I have created so far makes sense to me because I have played with the data and skimmed the associated paper, but I worry about translating this information to a more general audience. Is there a better way I can pull the data together in a single infographic? I also had trouble choosing a plot to compare NDVI. I have two sites with annual mean NDVI's that are very different, but I am unsure how I could connect year, NDVI, and frog counts in one figure. I used a density plot but may switch to a boxplot if it looks neater.
