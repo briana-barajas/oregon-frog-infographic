@@ -78,7 +78,7 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
 
 5.  *Hand-draw your anticipated three visualizations (option 1) or infographic (option 2). Take a photo of your drawing and embed it in your rendered `.qmd` file -- **note** that these are not exploratory visualizations, but rather your plan for your final visualizations that you will eventually polish and submit with HW #4*
 
-    \[HERE\]
+    ![infographic mock-up](IMG_1788.jpeg){width="2000"}
 
 6.  *Mock up your visualizations using code. We understand that you will continue to iterate on these into HW #4 (particularly after receiving feedback), but by the end of HW #3, you should:*
 
@@ -223,14 +223,18 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
       # lollipop plot (trying to mimic blades of grass using lollipop or windmill)
       ggplot(aes(x = sul_mm, y = frog_catch)) +
       
-      
+      # add line from x-axis to point
       geom_segment( aes(x= sul_mm, xend=sul_mm, y=0, yend=frog_catch),
                     linewidth = 2.9, col = "seagreen") +
+      
+      # point indicating frog count
       geom_point(col = "seagreen", shape = 17, size = 2) +
       
+      # pre-set theme
       theme_minimal() +
       
-      labs(y = "Frog Count", x = "Length (snout-urostyle length mm)")
+      # axis titles
+      labs(y = "Frog Count", x = "Length (snout-urostyle length mm)") 
     ```
 
 ## Additional Questions
