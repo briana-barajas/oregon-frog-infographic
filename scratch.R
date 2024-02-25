@@ -17,10 +17,20 @@ frogs_raw <- read_csv(here("data", "frog_cmr", "cmrData.csv")) %>%
 # read water data ----
 env_raw <- read_csv(here("data", "frog_cmr", "waterCov.csv"))
 
-# species range data
-range_map <- read_sf(here("data", "usfws_complete_species_current_range",
-                          "usfws_complete_species_current_range_1.shp"))
+# species range data ----
+query <- "SELECT * FROM usfws_complete_species_current_range_2 WHERE SCINAME='Rana pretiosa' "
 
+range_map <- st_read(here("data", "usfws_complete_species_current_range",
+                          "usfws_complete_species_current_range_2.shp"),
+                     query = query) %>% 
+  st_make_valid() %>% 
+  clean_names()
+
+# full Oregon map ----
+state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500k.shp")) %>% 
+  st_make_valid() %>% 
+  clean_names() %>% 
+  filter(name == "Oregon")
 
 
 ## ===========================================
@@ -51,6 +61,9 @@ frogs <- frogs_raw %>%
   
   # rename size to include units
   rename(sul_mm = sul)
+
+# crop spp range ----
+range_map <- st_intersection(range_map, state_map)
 
 
 
