@@ -60,10 +60,107 @@ frogs <- frogs_raw %>%
   mutate(year = str_remove(year, 'x')) %>% 
   
   # rename size to include units
-  rename(sul_mm = sul)
+  rename(sul_mm = sul) %>% 
+  
+  # remove years w/no frog surveys at Upper Jamison
+  filter(year %in% c(2009:2019))
 
 # crop spp range ----
 range_map <- st_intersection(range_map, state_map)
+
+rm(env_raw, frogs_raw, query)
+
+
+
+## ===========================================
+##                 Plot Ideas             ----
+## ===========================================
+
+# male vs. female comparison ----
+mf_count <- frogs %>% 
+  group_by(sex) %>% 
+  summarise(frog_catch = sum(frog_detected)) 
+
+# plot
+ggplot(data = mf_count) +
+  geom_point(aes(x = frog_catch, y = sex)) +
+  
+  # add hop line for males
+  geom_curve(aes(x = 0, xend = 267, y = 2, yend = 2), linetype = 2,
+             curvature = -0.4) +
+  
+  # add hop line for females
+  geom_curve(aes(x = 0, xend = 350, y = 1, yend = 1), linetype = 2,
+             curvature = -0.4) +
+  
+  theme_minimal()
+
+# size comparison ----
+
+frogs %>%
+  
+  # count frogs detected for each size
+  filter(frog_detected == 1) %>% 
+  group_by(sul_mm) %>% 
+  
+  summarise(frog_catch = sum(frog_detected)) %>% 
+  
+  # lollipop plot (trying to mimic blades of grass using lollipop or windmill)
+  ggplot(aes(x = sul_mm, y = frog_catch)) +
+  
+  
+  geom_segment( aes(x= sul_mm, xend=sul_mm, y=0, yend=frog_catch),
+                linewidth = 2.9, col = "seagreen") +
+  geom_point(col = "seagreen", shape = 17, size = 2) +
+  
+  theme_minimal()
+  
+
+# vegetation comparison ----
+
+# ATTEMPT 1 ----
+# plot NDVI over years, size by frog_count (bubble)
+# test <- env %>%
+#   select(c("year", "reach", "mdNDVI")) %>%
+#   filter(year %in% c(2010:2019)) %>%
+#   mutate(year = as.factor(year))
+# 
+# group <- frogs %>%
+#   filter(frog_detected != 0) %>%
+#   filter(year %in% c(2010:2019)) %>%
+#   mutate(year = as.factor(year)) %>%
+#   group_by(reach, year) %>%
+#   summarise(frog_catch = sum(frog_detected)) %>%
+#   left_join(test)
+# 
+# ggplot(data = group) +
+#   geom_hex(aes(x = year, y = frog_catch, col = mdNDVI))
+
+# ATTEMPT 2 ----
+# boring ole pie chart, works but wouldn't look like lilly pad
+reach_count <- frogs %>% 
+  group_by(reach) %>% 
+  summarise(frog_catch = sum(frog_detected))
+
+ggplot(reach_count, aes(x = "", y = frog_catch, fill = reach)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  theme_void()
+
+# ATTEMPT 3 ----
+
+# density plot of NDVI for both sites, put count values in text
+# add arrows pointing left and right w/labels for vegetation
+ggplot(env, aes(x = mdNDVI, y = reach, fill = reach)) +
+  geom_vline(xintercept = 0) +
+  geom_density_ridges(scale = 1) +
+  theme_minimal()
+
+
+
+
+
+
 
 
 
