@@ -11,19 +11,38 @@ format:
 
 1.  *Which option do you plan to pursue?*
 
-    **ANS:**
+    **ANS:** Option 2, creating an info graphic.
 
-2.  Restate your question(s). Has this changed at all since HW #1? If yes, how so?
+2.  *Restate your question(s). Has this changed at all since HW #1? If yes, how so?*
 
-3.  Explain which variables from your data set(s) you will use to answer your question(s).
+    **ANS:** My original question from HW #1 was to examine if drought mitigation efforts at Jack Creek, Oregon had any influence on the Oregon spotted frog population. I ended up having a lot of trouble with this, as there were many gaps in the data and there failed to be any clear trends. I also tried to convert the "count" data to some metric of survival, but that proved to be even more challenging. While I was researching methods for converting count data to survival rates, I found that many of the methods used for this conversion assume you are equally likely to catch individuals from the same species, regardless of individual attributes. I decided to use this to create my new question, *"Which frogs are easiest to catch?"* This will be my one overarching question for the graphic, and each graph will compare some trait versus the number of frogs caught.
 
-4.  In HW #2, you should have created some exploratory data viz to better understand your data. You may already have some ideas of how you plan to formally visualize your data, but it\'s *incredibly* helpful to look at visualizations by other creators for inspiration. Find at least two data visualizations that you could (potentially) borrow / adapt pieces from. Link to them or download and embed them into your `.qmd` file, and explain which elements you might borrow (e.g. the graphic form, legend design, layout, etc.).
+    1.  *Explain which variables from your data set(s) you will use to answer your question(s).*
 
-5.  Hand-draw your anticipated three visualizations (option 1) or infographic (option 2). Take a photo of your drawing and embed it in your rendered `.qmd` file -- **note** that these are not *exploratory* visualizations, but rather your plan for your final visualizations that you will eventually polish and submit with HW #4
+        **ANS:** I have two data frames from the same data publication, available for download through the [USGS Database](https://www.usgs.gov/data/oregon-spotted-frog-rana-pretiosa-captures-and-after-drought-mitigation-jack-creek-oregon-2009). The `frog` data has individual frog counts, which I'll use to calculate the probability of catching a frog with a certain trait. Each frog has a unique tag number, as well as data on sex, size, and location (categorized into `reach`). The water data frame contains data on the normalized vegetation index (ndvi) that I'll use as a metric for vegetation density. Finally, I have a map of the [Oregon spotted frog range](https://ecos.fws.gov/ecp/species/6633) from the U.S. Fish and Wildlife Services, although it is solely geographic information. I summarized the variables below:
 
-6.  Mock up your visualizations using code. We understand that you will continue to iterate on these into HW #4 (particularly after receiving feedback), but by the end of HW #3, you should:
+        | Variable  |                    Type                     | Data source |
+        |:---------:|:-------------------------------------------:|:-----------:|
+        |   count   |     binary - 1 if individual was found      |    USGS     |
+        |    sex    |            binary - male/female             |    USGS     |
+        |    sul    |    numeric - snout-urostyle length (mm)     |    USGS     |
+        |   reach   |   categorical - Middle Jack/Upper Jamison   |    USGS     |
+        |   mndvi   | numeric - mean NDVI for later summer months |    USGS     |
+        | range map | geographic - range maps for endangered spp  |    USFWS    |
 
-    -   have your data plotted (if you\'re experimenting with an advanced graphic form(s) that were not explicitly covered in class, we understand that this may take some more time to build; you should have as much put together as possible)
+3.  *In HW #2, you should have created some exploratory data viz to better understand your data. You may already have some ideas of how you plan to formally visualize your data, but it's incredibly helpful to look at visualizations by other creators for inspiration. Find at least two data visualizations that you could (potentially) borrow or adapt pieces from. Link to them or download and embed them into your `.qmd` file, and explain which elements you might borrow (e.g. the graphic form, legend design, layout, etc.).*
+
+    -   [Commercial fish production](https://github.com/gkaramanis/tidytuesday/tree/master/2021/2021-week23), by Georgios Karamanis
+        -   I particularly like the small map of the Great Lakes, it's done subtle but still easy to read. Geographic information is not as essential to my question, but I would like to include some background on the data (i.e. why it matters). I also like the use of the fish silhouettes, and I would like to add the Oregon spotted frog or some related imagery to my graphic.
+    -   [Numbats](https://github.com/doehm/tidytues?tab=readme-ov-file#week-10-numbats) and [UFO Sightings](https://github.com/doehm/tidytues?tab=readme-ov-file#week-25-ufo-sightings), by Dan Oehm (provided in class resources)
+        -   I enjoyed all of Dan Oehm's figures, but I thought the layout of these particular examples would work well for my data. In the Numbats example, I enjoy how the text is minimal yet still adds context to the data. Since I am comparing frog counts against three different variables (sex, location, and size) I think following the UFO layout might work well. I can create three different plots with similar aesthetics, and have a snippet of text next to them.
+    -   Bonus: I saw many examples that utilized text colors that matched plot colors, which I would also like to incorporate
+
+4.  Hand-draw your anticipated three visualizations (option 1) or infographic (option 2). Take a photo of your drawing and embed it in your rendered `.qmd` file -- **note** that these are not *exploratory* visualizations, but rather your plan for your final visualizations that you will eventually polish and submit with HW #4
+
+5.  Mock up your visualizations using code. We understand that you will continue to iterate on these into HW #4 (particularly after receiving feedback), but by the end of HW #3, you should:
+
+    -   have your data plotted (if you're experimenting with an advanced graphic form(s) that were not explicitly covered in class, we understand that this may take some more time to build; you should have as much put together as possible)
 
     -   use appropriate strategies to highlight / focus attention on a clear message
 
@@ -36,5 +55,5 @@ format:
 ## Additional Questions
 
 1.  What challenges did you encounter or anticipate encountering as you continue to build / iterate on your visualizations in R?
-2.  What ggplot extension tools / packages do you need to use to build your visualizations? Are there any that we haven\'t covered in class that you\'ll be learning how to use for your visualizations?
+2.  What ggplot extension tools / packages do you need to use to build your visualizations? Are there any that we haven't covered in class that you'll be learning how to use for your visualizations?
 3.  What feedback do you need from the instructional team and / or your peers to ensure that your intended message is clear
