@@ -1,72 +1,66 @@
 ---
-title: "HW 2 - Data Wrangling and Exploration"
-subtitle: "Data wrangling and exploration for final assignment"
+title: "HW4 Final"
 author: "Briana Barajas"
-date: 2024-02-01
-toc: true
-format: html
-editor_options: 
-  chunk_output_type: console
+date: 2024-03-16
 ---
-
 ## Preparation
-
-```{r, include=FALSE}
+```{r}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
-Libraries
-
 ```{r}
-library(tidyverse)
+# load libraries ----
+library(tidyverse) #data wrangling
 library(here)
 library(janitor)
-library(ggridges)
 library(readxl)
-library(fmsb)
+
+library(ggspatial) # mapping
+library(sf)
+
+library(ggridges) # ggplot customizations
+library(ggtext)
 ```
 
-Read Data
-
 ```{r}
-# capture, mark, remark frog survey data 
+# read in data
+
+# read frog data ----
 frogs_raw <- read_csv(here("data", "frog_cmr", "cmrData.csv")) %>% 
   clean_names()
 
-# data on water/environmental conditions 
-water_raw <- read_csv(here("data","frog_cmr", "waterCov.csv")) %>% 
+# read water data ----
+env_raw <- read_csv(here("data", "frog_cmr", "waterCov.csv"))
+
+# species range data ----
+query <- "SELECT * FROM usfws_complete_species_current_range_2 WHERE SCINAME='Rana pretiosa' "
+
+range_map <- st_read(here("data", "usfws_complete_species_current_range",
+                          "usfws_complete_species_current_range_2.shp"),
+                     query = query) %>% 
+  st_make_valid() %>% 
   clean_names()
 
+# full Oregon map ----
+state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500k.shp")) %>% 
+  st_make_valid() %>% 
+  clean_names() %>% 
+  filter(name == "Oregon" | name == "Washington")
 ```
 
-## Wrangle and Join
+## Data Wrangling
 
-Wrangle `water` and `frogs` data, then join
 ```{r}
-## ==========================================
-##            wrangle water data         ----
-## ==========================================
+# wrangle environmental data ----
+env <- env_raw %>% 
+  filter(reach == "Middle Jack" | reach == "Upper Jamison")
 
-# water <- water_raw %>% 
-#   
-#   # filter to Middle Jack reach
-#   filter(reach == 'Middle Jack') %>% 
-#   
-#   # convert year to factor
-#   mutate(year = as.factor(year))
-
-## ==========================================
-##         wrangle frog data         ----
-## ==========================================
-
-## .........create primary data frame............
-
-frogs <- frogs_raw %>%
+# wrangle frog survey data ----
+frogs <- frogs_raw %>% 
   
-  # filter reach to Middle Jack
-  # filter(reach %in% c("Middle Jack", "Upper Jamison")) %>% 
+  # filter to most surveyed reaches
+  filter(reach == "Middle Jack" | reach == "Upper Jamison") %>% 
   
-  # make the col header (year_visit) one column, and frog_detected col
   pivot_longer(cols = 5:43,
                names_to = "year_visit",
                values_to = "frog_detected") %>% 
@@ -82,255 +76,36 @@ frogs <- frogs_raw %>%
   # rename size to include units
   rename(sul_mm = sul) %>% 
   
-  # add size grouping categorical 
-  mutate(sul_mm = as.numeric(sul_mm)) %>% 
-  mutate(size_group = case_when(sul_mm <= 54 ~ "small",
-                                sul_mm > 54 & sul_mm < 66 ~ "medium",
-                                sul_mm >= 66 ~ "large")) %>% 
-  mutate(size_group = as.factor(size_group)) %>% 
-  
-  # combine frog_detected so individuals are only counted once per year
-  group_by(year, reach, tag, sex, sul_mm, size_group) %>% #group by to keep cols
-  summarise(frog_detected = sum(frog_detected)) %>% 
-  mutate(frog_detected = ifelse(frog_detected != 0, 1, 0)) %>% 
-  ungroup()
+  # remove years w/no frog surveys at Upper Jamison
+  filter(year %in% c(2009:2019))
 
-  
+# crop spp range ----
+# range_map <- st_intersection(range_map, state_map)
 
-## ==========================================
-##         wrangle egg mass data         ----
-## ==========================================
-# eggs <- eggs_raw %>% 
-#   
-#   # rename site_id to reach name
-#   rename(reach = site_id) %>% 
-#   
-#   # filter reach to Middle Jack
-#   filter(reach == "Middle Jack") %>% 
-#   
-#   # select key columns
-#   select(c(survey_date, count, life_stage)) %>% 
-#   
-#   # update survey_date to date-time object
-#   mutate(survey_date = as.Date(survey_date),
-#          year = year(survey_date)) %>% 
-#   
-#   # count egg masses per year
-#   group_by(life_stage, year) %>% 
-#   summarise(count = sum(count))
-
-
-
-## ==========================================
-##             join all data             ----
-## ==========================================
-# # prep raw data to re-join to frogs to keep length(sul) measurements
-# frogs_raw <- frogs_raw %>%
-#   
-#   select(-starts_with('x')) %>% # remove unwrangled year columns
-#   rename(sul_mm = sul) # rename sul column
-# 
-# 
-# # re-join data
-# frogs <- left_join(frogs, frogs_raw, by = c('tag','sex'))
-# 
-# # final df join, environmental factors and frog 
-# frogs_env <- frogs %>% 
-#   
-#   full_join(water, by = c('year', 'reach')) # full join frog data to water data by the year column
-# 
-# # remove extra variables from env
-#rm(frogs_raw, water_raw, eggs_raw)
+rm(env_raw, frogs_raw, query)
 ```
 
-## Calculate Probability
-Calculating the probability that an individual from will be seen the next year
 
+## Species Range Map
 
-```{r, eval=FALSE}
-# calculate proportion of individuals that were found every year 
-frog_prop <- frogs_env %>% 
-  
-  # create 3 key size categories
-  mutate(sul_mm = as.numeric(sul_mm)) %>% 
-  mutate(size_group = case_when(sul_mm <= 54 ~ "small",
-                                sul_mm > 54 & sul_mm < 66 ~ "medium",
-                                sul_mm >= 66 ~ "large")) %>%
-  
-  # calculate annual proportion of surveyed/survived based on size
-  group_by(year, size_group) %>% 
-  summarise(prop_detected = sum(frog_detected)/n())
-
-# plot results
-frog_prop %>% 
-  ggplot() +
-  geom_vline(xintercept = "2014", linetype = 2) +
-  geom_bar(aes(x = year, y = prop_detected, fill = size_group),
-           position = "stack", stat = "identity") +
-  theme_bw() +
-  scale_fill_manual(values = c('#a3b18a','#588157','#344e41')) +
-  labs(x = "Year",
-       y = "Proportion Frogs Detected",
-       title = "Proportion of Frogs Found in Capture-mark-release Surveys",
-       fill = "Relative Size") +
-  annotate("text", x = "2014",y = Inf, 
-           label = "ponds excavated to
-    mitigate drought", size = 3,
-    hjust = -0.1, vjust = 1.7)
-```
-
-## END HW 2, START HW3 SECTION PREP 
-
-Plot different life stage surveys over the years
 ```{r}
-eggs %>% 
-  ggplot(aes(x = year, y = count, col = life_stage)) +
-  geom_line(linewidth = 1.2) +
-  geom_point() +
-  theme_bw()
-```
+# create a coordinate point for our data
+data_location <- data.frame(lat = c(43.224875), 
+                     lon = c(-121.587244)) %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = st_crs(state_map))
 
-View how different sexes did over the years
-```{r}
-# prep count data for dumbbell plot
-frog_d <- frogs %>% 
   
-  # calculate sum of surveyed frogs based on sex
-  group_by(year, sex) %>% 
-  summarise(frog_count = sum(frog_detected)) %>% 
-  
-  # change year to numeric for plot type
-  mutate(year = as.numeric(as.character(year))) %>% 
-  
-  # pivot so start/end points are in different columns
-  pivot_wider(names_from = sex, values_from = frog_count)
-
-# dumbell plot sex
-ggplot(frog_d) +
-  geom_segment(aes(x = female, xend = male,
-                   y = year, yend = year), linewidth = 0.7) +
-  geom_point(aes(x = female, y = year), col = "#F35C4A", size = 4) +
-  geom_point(aes(x = male, y = year), col = "#A3B18A", size = 4) +
-  theme_classic()
-
-```
-
-GOOD line plot of frogs over the year
-```{r}
-# calculate proportion of individuals that were found every year 
-frog_line <- frogs_env %>% 
-  
-  # create 3 key size categories
-  mutate(sul_mm = as.numeric(sul_mm)) %>% 
-  mutate(size_group = case_when(sul_mm <= 54 ~ "small",
-                                sul_mm > 54 & sul_mm < 66 ~ "medium",
-                                sul_mm >= 66 ~ "large")) %>%
-  
-  # calculate annual proportion of surveyed/survived based on size
-  group_by(year, size_group) %>% 
-  summarise(count = sum(frog_detected)) %>% 
-  
-  # update yr column data type
-  mutate(year = as.numeric(as.character(year)))
-
-# plot yearly
-frog_line %>% 
+# create species range map in oregon
 ggplot() +
-  geom_vline(xintercept = 2014, linetype = 2) +
-  geom_line(aes(x = year, y = count, col = size_group),
-            linewidth = 1) +
-  scale_color_manual(values = c('#f46036','#2e294e','#17c3b2')) +
-  geom_point(aes(x = year, y = count, col = size_group)) + 
-  theme_classic() +
-  labs(col = "Relative Size", y = "No. Frogs Re-Captured", x = "Year",
-       title = "Capture-Mark-Recapture Surveys (Jack Creek, Oregon)") +
-    annotate("text", x = 2014,y = Inf, 
-           label = "          drought mitigation\n(addition of excavated ponds)", size = 3,
-    hjust = -0.1, vjust = 1.7) +
-  scale_x_continuous(breaks = c(2009:2021, 3)) +
-  theme(plot.title = element_text(size = 14))
-
-# add species name
-# image different frog sizes
-```
-
-NDVI x frog-count line plot
-```{r}
-ndvi_line <- frogs_env %>% 
-  
-  # frog counts by sex
-  group_by(year, sex) %>% 
-  summarise(count = sum(frog_detected)) %>% 
-  
-  # join with precipitation data
-  left_join(y = water, by = "year") %>% 
-  
-  # make year numeric
-  mutate(year = as.numeric(as.character(year))) %>% 
-  
-  # remove 2009 because it doesn't have precipitation data
-  filter(year != 2009)
-
-ggplot(ndvi_line) +
-  geom_line(aes(x = count, y = precip_accum, col = sex))
-
-```
-
-Bad radar plot (submitted)
-```{r, eval = FALSE}
-frogs_radar <- frogs %>% ungroup() %>% 
-  group_by(sex, year) %>% 
-  select(-c("tag", "reach", "sul_mm")) %>%
-  summarise(count = sum(frog_detected)) %>% 
-  pivot_wider(names_from = year, values_from = count) %>% 
-  ungroup() %>% 
-  select(-c(sex))
-
-rownames(frogs_radar) <- c("female", "male")
-frogs_radar <- rbind(rep(25,5) , rep(0,5) , frogs_radar)
-  
-radarchart(frogs_radar, 
-           pcol = c("#F35C4A", "#A3B18A"), # color line
-           plwd = 3, plty = 1, # line width and type
-           cglcol = "darkgrey", cglty = 1,
-           title = "Annual Frog Count Surveys at Jack Creek, Oregon")[]
-
-legend(x=.9, y=1.2, legend = c("female", "male"),
-       bty = "n", pch=20 , 
-       col=c("#F35C4A", "#A3B18A") , 
-       text.col = "black", cex=1.2, pt.cex=3)
-
-# add count data
-# change order of years (but really years isn't conventional)
-# add count values for each radial point
-```
-
-
-## Comparing sites (HW3 CONT)
-
-```{r}
-frogs %>% 
-  group_by(reach, year) %>% 
-  mutate(year = as.numeric(year)) %>% 
-  summarise(annual_frog_count = sum(frog_detected)) %>%
-  filter(annual_frog_count != 0) %>% 
-  ggplot(aes(x = year, y = annual_frog_count, col = reach)) +
-  geom_vline(xintercept = 2014, linetype = 2) +
-  geom_line(linewidth = 1) + geom_point() + theme_minimal() 
-
-  
-
-```
-
-
-
-```{r}
-frogs %>% 
-  group_by(reach, year) %>% 
-  summarise(annual_count = sum(frog_detected)) %>% 
-  
-  ggplot() +
-  geom_col(aes(x = year, y = annual_count, fill = reach)) +
-  facet_wrap(~reach)
+  geom_sf(data = state_map, col = "slategray") +
+  geom_sf(data = range_map, fill = "yellowgreen", col = "black") +
+  geom_sf(data = data_location, shape = 0, size = 6, col = "purple1") +
+  geom_curve(aes(x = -120, xend = -121.3,
+                 y = 44, yend = 43.18),
+             curvature = -0.3, col = "purple1", linewidth = 0.7,
+             arrow = grid::arrow()) +
+  theme_void() +
+  labs(title = "Species Range Map - Oregon Spotted Frog") +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
