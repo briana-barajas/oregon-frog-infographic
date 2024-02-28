@@ -109,18 +109,30 @@ data_location <- data.frame(lat = c(43.224875),
   st_as_sf(coords = c("lon", "lat"), crs = st_crs(state_map))
 
   
-# create species range map in oregon
+# create species range map
 ggplot() +
+  # map states & species range
   geom_sf(data = state_map, col = "slategray") +
   geom_sf(data = range_map, fill = "yellowgreen", col = "black") +
-  geom_sf(data = data_location, shape = 0, size = 6, col = "purple1") +
-  geom_curve(aes(x = -120, xend = -121.3,
-                 y = 44, yend = 43.18),
+  
+  # add box around study area 
+  geom_sf(data = data_location, shape = 15, size = 6, col = "purple1",
+          alpha = 0.45) +
+  
+  # add arrow pointing to study area
+  geom_curve(aes(x = -120, xend = -121.50,
+                 y = 44, yend = 43.224875),
              curvature = -0.3, col = "purple1", linewidth = 0.7,
              arrow = grid::arrow()) +
+  
+  # add annotation
+  annotate(geom = "text", x = -119.6, y = 44.25, label = "Jack Creek\n Study Area", family = "noto", size = 5, col = "purple") +
+  
   theme_void() +
   labs(title = "Species Range Map - Oregon Spotted Frog") +
-  theme(plot.title = element_text(hjust = 0.5))
+  
+  # customize title theme
+  theme(plot.title = element_text(hjust = 0.5, family = "roboto", size = 20)) 
 ```
 
 ## Male vs. Female Count
