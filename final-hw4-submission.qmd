@@ -3,7 +3,9 @@ title: "HW4 Final"
 author: "Briana Barajas"
 date: 2024-03-16
 ---
+
 ## Preparation
+
 ```{r}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
@@ -19,7 +21,17 @@ library(ggspatial) # mapping
 library(sf)
 
 library(ggridges) # ggplot customizations
-library(ggtext)
+library(showtext)
+library(ggimage)
+```
+
+```{r}
+# import Google fonts
+font_add_google(name = "Noto Sans", family = "noto")
+font_add_google(name = "Roboto Slab", family = "roboto")
+
+# enable {showtext} for rendering
+showtext_auto()
 ```
 
 ```{r}
@@ -46,6 +58,9 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
   st_make_valid() %>% 
   clean_names() %>% 
   filter(name == "Oregon" | name == "Washington")
+
+# frog icon ----
+img_path <- here("data", "frog-icon.png")
 ```
 
 ## Data Wrangling
@@ -85,7 +100,6 @@ frogs <- frogs_raw %>%
 rm(env_raw, frogs_raw, query)
 ```
 
-
 ## Species Range Map
 
 ```{r}
@@ -109,3 +123,55 @@ ggplot() +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
+## Male vs. Female Count
+
+```{r}
+# NOTE: need to change point to an image, want it to look like a frog jumping
+mf_count <- frogs %>% 
+  group_by(sex) %>% 
+  summarise(frog_catch = sum(frog_detected)) %>% 
+  mutate(image = img_path)
+
+# plot
+ggplot(data = mf_count) +
+  geom_point(aes(x = frog_catch, y = sex), alpha = 0) +
+  geom_image(aes(x = frog_catch, y = sex, image = image), size = 0.1) +
+  
+  # add hop line for males
+  geom_curve(aes(x = 0, xend = 267, y = 2, yend = 2), linetype = 2,
+             curvature = -0.4) +
+  
+  # add hop line for females
+  geom_curve(aes(x = 0, xend = 350, y = 1, yend = 1), linetype = 2,
+             curvature = -0.4) +
+  
+  # pre-set theme
+  theme_minimal() +
+  
+  # customize labels and title
+  labs(x = "Number of Frogs Caught",
+       title = "Capture-mark-release Surveys of Oregon Spotted Frog",
+       subtitle = "Assessing distribution of sex in surveyed frogs") +
+  
+  # add labels for data points
+  annotate(geom = "text", x = 354, y = 1.14, label = "350", 
+           family = "noto", size = 4) +
+  annotate(geom = "text", x = 275, y = 2.1, label = "267",
+           family = "noto", size = 4) +
+  
+  # remove gridlines
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        
+        # remove labels that aren't needed
+        axis.text.x = element_blank(),
+        axis.title.y = element_blank(),
+        
+        # customize fonts
+        plot.title = element_text(family = "roboto", face = "bold", size = 20),
+        plot.subtitle = element_text(family = "noto", size = 14, face = "italic"),
+        axis.text.y = element_text(family = "noto", size = 12),
+        axis.title.x = element_text(family = "noto", size = 12, vjust = 20, hjust = 0.5))
+
+
+```
