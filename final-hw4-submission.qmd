@@ -61,6 +61,9 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
 
 # frog icon ----
 img_path <- here("data", "frog-icon.png")
+
+# jack creek map
+creek_path <- here("data", "jack-creek-map.png")
 ```
 
 ## Data Wrangling
@@ -110,7 +113,7 @@ data_location <- data.frame(lat = c(43.224875),
 
   
 # create species range map
-ggplot() +
+map <- ggplot() +
   # map states & species range
   geom_sf(data = state_map, col = "slategray") +
   geom_sf(data = range_map, fill = "yellowgreen", col = "black") +
@@ -125,14 +128,25 @@ ggplot() +
              curvature = -0.3, col = "purple1", linewidth = 0.7,
              arrow = grid::arrow()) +
   
-  # add annotation
-  annotate(geom = "text", x = -119.6, y = 44.25, label = "Jack Creek\n Study Area", family = "noto", size = 5, col = "purple") +
+  # add zoomed in image of study area
+  
+  
+  # # add annotation
+  # annotate(geom = "text", x = -119.6, y = 44.25, label = "Jack Creek\n Study Area", family = "noto", size = 5, col = "purple") +
   
   theme_void() +
-  labs(title = "Species Range Map - Oregon Spotted Frog") +
+  labs(title = "Species Range Map") +
   
   # customize title theme
-  theme(plot.title = element_text(hjust = 0.5, family = "roboto", size = 20)) 
+  theme(plot.title = element_text(hjust = 0.5, family = "roboto", size = 20))
+
+map + inset_element(p = test,
+                    left = 0.5, 
+                    bottom = 0.2, 
+                    right = 0.9,
+                    top = 0.7,
+                    clip = TRUE) + theme_void()
+
 ```
 
 ## Male vs. Female Count
