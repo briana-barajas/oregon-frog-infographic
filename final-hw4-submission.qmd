@@ -2,6 +2,10 @@
 title: "HW4 Final"
 author: "Briana Barajas"
 date: 2024-03-16
+format:
+  html:
+    embed-resources: true
+    code-fold: true
 ---
 
 ## Preparation
@@ -23,6 +27,7 @@ library(sf)
 library(ggridges) # ggplot customizations
 library(showtext)
 library(ggimage)
+library(patchwork)
 ```
 
 ```{r}
@@ -62,8 +67,14 @@ state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500
 # frog icon ----
 img_path <- here("data", "frog-icon.png")
 
-# jack creek map
-creek_path <- here("data", "jack-creek-map.png")
+# jack creek map ----
+creek_path <- here("data", "jack-creek.png")
+creek_img <- png::readPNG(creek_path, native = TRUE)
+
+# create a coordinate point for our data
+data_location <- data.frame(lat = c(43.224875), 
+                            lon = c(-121.587244)) %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = st_crs(state_map))
 ```
 
 ## Data Wrangling
@@ -100,52 +111,49 @@ frogs <- frogs_raw %>%
 # crop spp range ----
 # range_map <- st_intersection(range_map, state_map)
 
-rm(env_raw, frogs_raw, query)
+rm(env_raw, frogs_raw, query, creek_path)
 ```
 
 ## Species Range Map
 
 ```{r}
-# create a coordinate point for our data
-data_location <- data.frame(lat = c(43.224875), 
-                     lon = c(-121.587244)) %>% 
-  st_as_sf(coords = c("lon", "lat"), crs = st_crs(state_map))
-
-  
 # create species range map
-map <- ggplot() +
+ggplot() +
+  
   # map states & species range
   geom_sf(data = state_map, col = "slategray") +
   geom_sf(data = range_map, fill = "yellowgreen", col = "black") +
   
   # add box around study area 
-  geom_sf(data = data_location, shape = 15, size = 6, col = "purple1",
+  geom_sf(data = data_location, shape = 15, size = 6, col = "#8A2BE2",
           alpha = 0.45) +
   
-  # add arrow pointing to study area
+  # add text annotation for study area
+  annotate(geom = "text", x = -118, y = 45.3, label = "Study Area \n Jack Creek, Oregon", family = "noto", size = 5.5, col = "#8A2BE2") +
+  
+  # expand axis limits so inset image does not get cropped
+  coord_sf(xlim = c(-125, -116), ylim = c(41.5, 49.5), expand = FALSE) +
+  
+  # add arrows connecting study area to inset map
   geom_curve(aes(x = -120, xend = -121.50,
-                 y = 44, yend = 43.224875),
-             curvature = -0.3, col = "purple1", linewidth = 0.7,
-             arrow = grid::arrow()) +
+                 y = 44.98, yend = 43.224875),
+             curvature = 0, col = "#8A2BE2", linewidth = 0.7) +
   
-  # add zoomed in image of study area
+  geom_curve(aes(x = -120, xend = -121.50,
+                 y = 43.02, yend = 43.224875),
+             curvature = 0, col = "#8A2BE2", linewidth = 0.7) +
   
+  # add map of study area
+  annotation_raster(creek_img, xmax = -120, xmin = -116,
+                    ymax = 45, ymin = 43) +
   
-  # # add annotation
-  # annotate(geom = "text", x = -119.6, y = 44.25, label = "Jack Creek\n Study Area", family = "noto", size = 5, col = "purple") +
-  
+  # update general theme
   theme_void() +
-  labs(title = "Species Range Map") +
   
-  # customize title theme
-  theme(plot.title = element_text(hjust = 0.5, family = "roboto", size = 20))
+  # add and customize title
+  labs(title = "Species Range Map") +
+  theme(plot.title = element_text(hjust = 0.5, family = "roboto", size = 26))
 
-map + inset_element(p = test,
-                    left = 0.5, 
-                    bottom = 0.2, 
-                    right = 0.9,
-                    top = 0.7,
-                    clip = TRUE) + theme_void()
 
 ```
 
