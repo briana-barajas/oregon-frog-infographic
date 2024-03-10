@@ -284,11 +284,20 @@ ggplot(data = frogs_subset, aes(x = sul_mm)) +
   # start y-axis at 0 (close gap between histogram and x-axis)
   scale_y_continuous(expand=c(0, 0)) +
   
-  # add line for mean and median
-  geom_vline(aes(xintercept = median(frogs_subset$sul_mm)), 
-             linetype = 2, col = "blue", linewidth = 1) +
-  geom_vline(aes(xintercept = mean(frogs_subset$sul_mm)), 
-             linetype = 2, linewidth = 1)
+  # add box for starts
+  annotate(geom = "rect", xmin = 41.5, xmax = 48.5,
+           ymin = 27, ymax = 33, fill = "lavender") +
+  
+  # add stats on frog size
+  annotate(geom = "text", x = 45, y = 30,
+           label = "Size range: 42-82 \n Mean length: 59.05 \n Median length: 58",
+           family = "noto", size = 6) +
+  
+  # add image for measuring frog length
+  annotation_raster(sul_img, xmax = 82, xmin = 72,
+                    ymax = 38, ymin = 23)
+  
+
 ```
 
 
