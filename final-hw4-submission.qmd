@@ -14,6 +14,7 @@ format:
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
+Load necessary libraries.
 ```{r}
 # load libraries ----
 library(tidyverse) #data wrangling
@@ -30,6 +31,7 @@ library(ggimage)
 library(patchwork)
 ```
 
+Import fonts from Google.
 ```{r}
 # import Google fonts
 font_add_google(name = "Noto Sans", family = "noto")
@@ -39,6 +41,7 @@ font_add_google(name = "Roboto Slab", family = "roboto")
 showtext_auto()
 ```
 
+Read in Data.
 ```{r}
 # read in data
 
@@ -58,26 +61,35 @@ range_map <- st_read(here("data", "usfws_complete_species_current_range",
   st_make_valid() %>% 
   clean_names()
 
-# full Oregon map ----
+# full state maps ----
 state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500k.shp")) %>% 
   st_make_valid() %>% 
   clean_names() %>% 
   filter(name == "Oregon" | name == "Washington")
 
-# frog icon ----
-img_path <- here("data", "frog-icon.png")
-
-# jack creek map ----
-creek_path <- here("data", "jack-creek.png")
-creek_img <- png::readPNG(creek_path, native = TRUE)
-
-# create a coordinate point for our data
+# create a coordinate point for data collection area
 data_location <- data.frame(lat = c(43.224875), 
                             lon = c(-121.587244)) %>% 
   st_as_sf(coords = c("lon", "lat"), crs = st_crs(state_map))
 ```
 
+Read in images
+```{r}
+# frog icons ----
+frog_female <- here("data", "frog-female.png")
+frog_male <- here("data", "frog-male.png")
+
+# jack creek map ----
+creek_img <- png::readPNG(here("data", "jack-creek-inset.png"), native = TRUE)
+
+# sul image ----
+sul_img <- png::readPNG(here("data", "sul-measurement.png"), native = TRUE)
+```
+
+
 ## Data Wrangling
+
+The bulk of my data came from a single USGS publication on the Oregon Spotted frog.
 
 ```{r}
 # wrangle environmental data ----
@@ -111,7 +123,7 @@ frogs <- frogs_raw %>%
 # crop spp range ----
 # range_map <- st_intersection(range_map, state_map)
 
-rm(env_raw, frogs_raw, query, creek_path)
+rm(env_raw, frogs_raw, query)
 ```
 
 ## Species Range Map
@@ -129,25 +141,25 @@ ggplot() +
           alpha = 0.45) +
   
   # add text annotation for study area
-  annotate(geom = "text", x = -118, y = 45.3, label = "Study Area \n Jack Creek, Oregon", family = "noto", size = 5.5, col = "#8A2BE2") +
+  annotate(geom = "text", x = -118, y = 45.4, label = "Study Area \n Jack Creek, Oregon", family = "noto", size = 5.5, col = "black") +
   
   # expand axis limits so inset image does not get cropped
   coord_sf(xlim = c(-125, -116), ylim = c(41.5, 49.5), expand = FALSE) +
   
-  # add arrows connecting study area to inset map
+  # add lines connecting study area to inset map
   geom_curve(aes(x = -120, xend = -121.50,
                  y = 44.98, yend = 43.224875),
-             curvature = 0, col = "#8A2BE2", linewidth = 0.7) +
+             curvature = 0, col = "black", linewidth = 0.7) +
   
   geom_curve(aes(x = -120, xend = -121.50,
                  y = 43.02, yend = 43.224875),
-             curvature = 0, col = "#8A2BE2", linewidth = 0.7) +
+             curvature = 0, col = "black", linewidth = 0.7) +
   
   # add map of study area
   annotation_raster(creek_img, xmax = -120, xmin = -116,
                     ymax = 45, ymin = 43) +
   
-  # update general theme
+  # update general theme to remove background
   theme_void() +
   
   # add and customize title
@@ -160,38 +172,46 @@ ggplot() +
 ## Male vs. Female Count
 
 ```{r}
-# NOTE: need to change point to an image, want it to look like a frog jumping
+# create data subset of male vs. female frogs captured
 mf_count <- frogs %>% 
   group_by(sex) %>% 
-  summarise(frog_catch = sum(frog_detected)) %>% 
-  mutate(image = img_path)
+  summarise(frog_catch = sum(frog_detected))
 
-# plot
+# add column with male/female frog icon
+mf_count$image <- c(frog_female, frog_male)
+
+# change sex to same value so frogs can be on the same line
+mf_count$sex <- "A"
+
+# create plot of male vs. female frogs caught
 ggplot(data = mf_count) +
-  geom_point(aes(x = frog_catch, y = sex), alpha = 0) +
-  geom_image(aes(x = frog_catch, y = sex, image = image), size = 0.1) +
+  
+  # add images of frogs for male and female
+  geom_image(aes(x = frog_catch, y = sex, image = image), 
+             size = 0.1) +
   
   # add hop line for males
-  geom_curve(aes(x = 0, xend = 267, y = 2, yend = 2), linetype = 2,
-             curvature = -0.4) +
+  geom_curve(aes(x = 0, xend = 267, y = 1, yend = 1), linetype = 2,
+             curvature = -0.4, col = "#18BA9A", linewidth = 1) +
   
   # add hop line for females
   geom_curve(aes(x = 0, xend = 350, y = 1, yend = 1), linetype = 2,
-             curvature = -0.4) +
+             curvature = -0.4, col = "#754edb", linewidth = 1) +
+  
+  # expand x-axis to add space for text
+  coord_cartesian(xlim = c(0, 360)) +
   
   # pre-set theme
   theme_minimal() +
   
   # customize labels and title
-  labs(x = "Number of Frogs Caught",
-       title = "Capture-mark-release Surveys of Oregon Spotted Frog",
-       subtitle = "Assessing distribution of sex in surveyed frogs") +
+  labs(title = "Males vs. Females Caught") +
   
   # add labels for data points
-  annotate(geom = "text", x = 354, y = 1.14, label = "350", 
-           family = "noto", size = 4) +
-  annotate(geom = "text", x = 275, y = 2.1, label = "267",
-           family = "noto", size = 4) +
+  annotate(geom = "text", x = 351, y = 0.94, label = "350 female frogs", 
+           family = "noto", size = 4.5, col = "#754edb") +
+  annotate(geom = "text", x = 268, y = 0.94, label = "267 male frogs",
+           family = "noto", size = 4.5, col = "#18BA9A") +
   
   # remove gridlines
   theme(panel.grid.major.x = element_blank(),
@@ -202,10 +222,76 @@ ggplot(data = mf_count) +
         axis.title.y = element_blank(),
         
         # customize fonts
-        plot.title = element_text(family = "roboto", face = "bold", size = 20),
-        plot.subtitle = element_text(family = "noto", size = 14, face = "italic"),
-        axis.text.y = element_text(family = "noto", size = 12),
-        axis.title.x = element_text(family = "noto", size = 12, vjust = 20, hjust = 0.5))
-
+        plot.title = element_text(family = "roboto", face = "bold", size = 26,
+                                  hjust = 0.5, vjust = -10),
+        axis.text.y = element_blank(),
+        axis.title.x = element_blank())
 
 ```
+
+
+## Size Distribution
+
+```{r, eval=FALSE}
+# filter full dataset to only include frogs caught
+frogs %>% 
+  filter(frog_detected == 1) %>% 
+  
+  # plot distribution of frog size
+  ggplot(aes(x = sul_mm)) +
+  geom_density(fill = "#4EA72E", alpha = 0.8) +
+  
+  # change standard theme
+  theme_minimal() +
+  
+  # update axis titles
+  labs(y = "Density", 
+       x = "Snout to Urostyle Length (mm)",
+       title = "Distribution of Frog Lengths") +
+  
+  # update text font and size
+  theme(axis.title = element_text(family = "noto", size = 16),
+        axis.text = element_text(family = "noto", size = 16),
+        plot.title = element_text(family = "roboto", face = "bold",
+                                  hjust = 0.5, size = 26, vjust = -2))
+```
+
+
+```{r}
+# subset only deteted frogs
+frogs_subset <- frogs %>% 
+  filter(frog_detected == 1)
+
+# store median and mean values
+sul_median <- median(frogs_subset$sul_mm)
+sul_mean <- mean(frogs_subset$sul_mm)
+
+
+ggplot(data = frogs_subset, aes(x = sul_mm)) +
+  geom_histogram(fill = "#4EA72E", col = "seagreen", bins = 45) +
+  theme_minimal() +
+  # update axis titles
+  labs(y = "Frog Count", 
+       x = "Snout to Urostyle Length (mm)",
+       title = "Distribution of Frog Lengths") +
+  
+  # update text font and size
+  theme(axis.title = element_text(family = "noto", size = 16),
+        axis.text = element_text(family = "noto", size = 16),
+        plot.title = element_text(family = "roboto", face = "bold",
+                                  hjust = 0.5, size = 26)) +
+  
+  # start y-axis at 0 (close gap between histogram and x-axis)
+  scale_y_continuous(expand=c(0, 0)) +
+  
+  # add line for mean and median
+  geom_vline(aes(xintercept = median(frogs_subset$sul_mm)), 
+             linetype = 2, col = "blue", linewidth = 1) +
+  geom_vline(aes(xintercept = mean(frogs_subset$sul_mm)), 
+             linetype = 2, linewidth = 1)
+```
+
+
+
+
+
