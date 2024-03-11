@@ -43,8 +43,6 @@ showtext_auto()
 
 Read in Data.
 ```{r}
-# read in data
-
 # read frog data ----
 frogs_raw <- read_csv(here("data", "frog_cmr", "cmrData.csv")) %>% 
   clean_names()
@@ -84,6 +82,10 @@ creek_img <- png::readPNG(here("data", "jack-creek-inset.png"), native = TRUE)
 
 # sul image ----
 sul_img <- png::readPNG(here("data", "sul-measurement.png"), native = TRUE)
+
+# leaf image ----
+dry_leaf <- here("data", "dry-leaf.png")
+leaf <- here("data", "leaf.png")
 ```
 
 
@@ -137,7 +139,7 @@ ggplot() +
   geom_sf(data = range_map, fill = "yellowgreen", col = "black") +
   
   # add box around study area 
-  geom_sf(data = data_location, shape = 15, size = 6, col = "#8A2BE2",
+  geom_sf(data = data_location, shape = 15, size = 6, col = "dodgerblue",
           alpha = 0.45) +
   
   # add text annotation for study area
@@ -205,7 +207,7 @@ ggplot(data = mf_count) +
   theme_minimal() +
   
   # customize labels and title
-  labs(title = "Males vs. Females Caught") +
+  labs(title = "Number of Frogs Caughy by Sex") +
   
   # add labels for data points
   annotate(geom = "text", x = 351, y = 0.94, label = "350 female frogs", 
@@ -263,20 +265,65 @@ ggplot(env, aes(x = year, y = mdNDVI, col = reach,
 
 
 ```{r}
-env %>% 
-  filter(year <= 2019) %>% 
-  ggplot(aes(x= mdNDVI, fill = reach)) +
-  geom_histogram() +
-  
-  # update colors (match based on vegetation density)
-  scale_fill_manual(values = c("chartreuse4", "goldenrod3"))
-```
-
-```{r}
 # prepare NDVI data for dumbell plot
+env_db_data <- env %>% 
+  filter(year <= 2019) %>% 
+  select(c("year", "mdNDVI", "reach")) %>% 
+  pivot_wider(names_from = reach, values_from = mdNDVI) %>% 
+  clean_names() %>% 
+  mutate(year = as.factor(year),
+         leaf = green_pad,
+         dry_leaf = yellow_pad)
+
+yellow_pad <- here("yellow-pad.png")
+green_pad <- here("green-pad.png")
+
+# create dumbell plot of annual NDVI
+ggplot(env_db_data) +
+  
+  # add line for 0 axis
+  geom_hline(yintercept = 0, linetype = 3) +
+
+# add lines to connect NDVI of different sites
+geom_segment(aes(y = middle_jack, yend = upper_jamison,
+                 x = year, xend = year), 
+             
+             linewidth = 0.7, col = "slategray") +
+  
+  # add points as images
+  geom_image(aes(x = year, y = middle_jack,
+                 image = leaf), size = 0.08) +
+  geom_image(aes(x = year, y = upper_jamison,
+                 image = dry_leaf), size = 0.08) +
+  
+  # change to standard theme
+  theme_minimal() +
+  
+  # update axis names and titles
+  labs(y = "NDVI",
+       x = "Year",
+       title = "Average Summer NDVI") +
+  
+  # update theme
+  # update background and grid color
+  theme(panel.background = element_rect(fill = "aliceblue",
+                                        color = "lightblue3",
+                                        linewidth = 1),
+        panel.grid.major = element_line(color = "azure2"),
+        panel.grid.minor = element_line(color = "azure2"),
+        
+        # update fonts and text size
+        plot.title = element_text(family = "roboto", size = 26,
+                                  face = "bold", hjust = 0.5),
+        axis.title = element_text(family = "noto", size = 16),
+        axis.text = element_text(family = "noto", size = 14)) +
+  
+  # add annotation to provide information for NDVI
+  annotate(geom = "text", size = 5, family = "noto",
+           label = "Dense vegetation \n Sparse vegetation",
+           x = 6.5, y = 0, col = "blue")
 
 ```
-
 
 
 
@@ -310,7 +357,7 @@ ggplot(frogs_subset, aes(x = sul_mm)) +
   
   # add arrow pointing to most common sizes
   geom_curve(aes(x = 47.5, xend = 53,
-             y = 0.049, yend = 0.045),
+                 y = 0.049, yend = 0.045),
              curvature = 0.2, arrow = grid::arrow()) +
   
   # add note on common frog sizes
@@ -320,9 +367,9 @@ ggplot(frogs_subset, aes(x = sul_mm)) +
   
   # add image for measuring frog lengths
   annotation_raster(sul_img, xmax = 80, xmin = 72,
-                    ymax = 0.052, ymin = 0.035) 
+                    ymax = 0.052, ymin = 0.035)
 
-  
+
 ```
 
 
