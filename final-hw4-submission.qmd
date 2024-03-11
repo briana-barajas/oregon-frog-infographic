@@ -229,16 +229,66 @@ ggplot(data = mf_count) +
 
 ```
 
+## Annual NDVI
+```{r}
+
+# Plot annual NDVI for two different sites
+ggplot(env, aes(x = year, y = mdNDVI, col = reach,
+                linetype = reach)) +
+  geom_line(linewidth = 1) +
+  
+  # update colors (match based on vegetation density)
+  scale_color_manual(values = c("chartreuse4", "goldenrod3")) +
+  
+  # update to auto theme
+  theme_minimal() +
+  
+  # update axis labels/title
+  labs(col = "Site Name",
+       y = "Average Summer NDVI",
+       x = "Survey Year",
+       title = "Vegetation Density at Survey Sites") +
+  
+  # update text fonts and size
+  theme(plot.title = element_text(family = "roboto", size = 24,
+                                  hjust = 0.5, face = "bold"),
+        axis.text = element_text(family = "noto", size = 14),
+        axis.title = element_text(family = "noto", size = 16)) +
+  
+  # add captions on interpreting NDVI
+  annotate(geom = "text", x = 2019.5, y = 1.5,
+           label = "Middle Jack has more dense \n vegetation than Upper Jamison", family = "noto", size = 5)
+
+```
+
+
+```{r}
+env %>% 
+  filter(year <= 2019) %>% 
+  ggplot(aes(x= mdNDVI, fill = reach)) +
+  geom_histogram() +
+  
+  # update colors (match based on vegetation density)
+  scale_fill_manual(values = c("chartreuse4", "goldenrod3"))
+```
+
+```{r}
+# prepare NDVI data for dumbell plot
+
+```
+
+
+
 
 ## Size Distribution
 
 ```{r, eval=FALSE}
-# filter full dataset to only include frogs caught
-frogs %>% 
-  filter(frog_detected == 1) %>% 
-  
-  # plot distribution of frog size
-  ggplot(aes(x = sul_mm)) +
+# subset to only include frogs that were captured
+frogs_subset <- frogs %>% 
+  filter(frog_detected == 1)
+
+# plot density of frog size
+ggplot(frogs_subset, aes(x = sul_mm)) +
   geom_density(fill = "#4EA72E", alpha = 0.8) +
   
   # change standard theme
@@ -246,14 +296,33 @@ frogs %>%
   
   # update axis titles
   labs(y = "Density", 
-       x = "Snout to Urostyle Length (mm)",
-       title = "Distribution of Frog Lengths") +
+       x = "Length (mm)",
+       title = "Distribution of Frog Length") +
   
   # update text font and size
   theme(axis.title = element_text(family = "noto", size = 16),
         axis.text = element_text(family = "noto", size = 16),
         plot.title = element_text(family = "roboto", face = "bold",
-                                  hjust = 0.5, size = 26, vjust = -2))
+                                  hjust = 0.5, size = 26, vjust = 0)) +
+  
+  # update plot to start at y-axis
+  scale_y_continuous(expand=c(0, 0)) +
+  
+  # add arrow pointing to most common sizes
+  geom_curve(aes(x = 47.5, xend = 53,
+             y = 0.049, yend = 0.045),
+             curvature = 0.2, arrow = grid::arrow()) +
+  
+  # add note on common frog sizes
+  annotate(geom = "text", family = "noto", size = 5.5,
+           label = "Most frogs caught were between \n 53 - 55 mm in length",
+           x = 47.5, y = 0.052) +
+  
+  # add image for measuring frog lengths
+  annotation_raster(sul_img, xmax = 80, xmin = 72,
+                    ymax = 0.052, ymin = 0.035) 
+
+  
 ```
 
 
@@ -270,6 +339,7 @@ sul_mean <- mean(frogs_subset$sul_mm)
 ggplot(data = frogs_subset, aes(x = sul_mm)) +
   geom_histogram(fill = "#4EA72E", col = "seagreen", bins = 45) +
   theme_minimal() +
+  
   # update axis titles
   labs(y = "Frog Count", 
        x = "Snout to Urostyle Length (mm)",
@@ -295,8 +365,12 @@ ggplot(data = frogs_subset, aes(x = sul_mm)) +
   
   # add image for measuring frog length
   annotation_raster(sul_img, xmax = 82, xmin = 72,
-                    ymax = 38, ymin = 23)
+                    ymax = 38, ymin = 23) +
   
+  # add an annotation on how to measure frog length
+  annotate(geom = "text", x = 76.5, y = 39, family = "noto",
+           label = "Snout to urostyle length", size = 7)
+
 
 ```
 
