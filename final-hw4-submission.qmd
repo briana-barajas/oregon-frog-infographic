@@ -14,7 +14,8 @@ format:
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
-Load necessary libraries.
+Load necessary libraries
+
 ```{r}
 # load libraries ----
 library(tidyverse) #data wrangling
@@ -31,7 +32,8 @@ library(ggimage)
 library(patchwork)
 ```
 
-Import fonts from Google.
+Import fonts from Google
+
 ```{r}
 # import Google fonts
 font_add_google(name = "Noto Sans", family = "noto")
@@ -41,7 +43,10 @@ font_add_google(name = "Roboto Slab", family = "roboto")
 showtext_auto()
 ```
 
-Read in Data.
+## Read in Data
+
+This project required two datasets, both from the USGS database. The first data set is counts of the Oregon Spotted Frog between
+
 ```{r}
 # read frog data ----
 frogs_raw <- read_csv(here("data", "frog_cmr", "cmrData.csv")) %>% 
@@ -72,6 +77,7 @@ data_location <- data.frame(lat = c(43.224875),
 ```
 
 Read in images
+
 ```{r}
 # frog icons ----
 frog_female <- here("data", "frog-female.png")
@@ -94,7 +100,6 @@ green_pad <- here("data", "green-pad.png")
 # lilypad legend ----
 lilypad_legend <- png::readPNG(here("data", "lilypad-legend.png"))
 ```
-
 
 ## Data Wrangling
 
@@ -150,7 +155,7 @@ ggplot() +
           alpha = 0.45) +
   
   # add text annotation for study area
-  annotate(geom = "text", x = -118, y = 45.4, label = "Study Area \n Jack Creek, Oregon", family = "noto", size = 5.5, col = "black") +
+  annotate(geom = "text", x = -118, y = 45.4, label = "Study Area \n Jack Creek, Oregon", family = "noto", size = 9, col = "black") +
   
   # expand axis limits so inset image does not get cropped
   coord_sf(xlim = c(-125, -116), ylim = c(41.5, 49.5), expand = FALSE) +
@@ -173,9 +178,7 @@ ggplot() +
   
   # add and customize title
   labs(title = "Species Range Map") +
-  theme(plot.title = element_text(hjust = 0.5, family = "roboto", size = 26))
-
-
+  theme(plot.title = element_text(hjust = 0.5, vjust = -0.5, family = "roboto", size = 46))
 ```
 
 ## Male vs. Female Count
@@ -197,7 +200,7 @@ ggplot(data = mf_count) +
   
   # add images of frogs for male and female
   geom_image(aes(x = frog_catch, y = sex, image = image), 
-             size = 0.1) +
+             size = 0.3) +
   
   # add hop line for males
   geom_curve(aes(x = 0, xend = 267, y = 1, yend = 1), linetype = 2,
@@ -217,10 +220,10 @@ ggplot(data = mf_count) +
   labs(title = "Sex of Captured Frogs") +
   
   # add labels for data points
-  annotate(geom = "text", x = 351, y = 0.94, label = "350 female frogs", 
-           family = "noto", size = 4.5, col = "#754edb") +
-  annotate(geom = "text", x = 268, y = 0.94, label = "267 male frogs",
-           family = "noto", size = 4.5, col = "#18BA9A") +
+  annotate(geom = "text", x = 345, y = 0.82, label = "350 female frogs", 
+           family = "noto", size = 8, col = "#754edb") +
+  annotate(geom = "text", x = 258, y = 0.82, label = "267 male frogs",
+           family = "noto", size = 8, col = "#18BA9A") +
   
   # remove gridlines
   theme(panel.grid.major.x = element_blank(),
@@ -231,11 +234,10 @@ ggplot(data = mf_count) +
         axis.title.y = element_blank(),
         
         # customize fonts
-        plot.title = element_text(family = "roboto", size = 30,
-                                  hjust = 0.5, vjust = -10),
+        plot.title = element_text(family = "roboto", size = 46,
+                                  hjust = 0, vjust = -5),
         axis.text.y = element_blank(),
         axis.title.x = element_blank())
-
 ```
 
 ## Annual NDVI
@@ -256,12 +258,12 @@ ggplot(env_db_data) +
   
   # add line for 0 axis
   geom_hline(yintercept = 0, linetype = 3) +
-
-# add lines to connect NDVI of different sites
-geom_segment(aes(y = middle_jack, yend = upper_jamison,
-                 x = year, xend = year), 
-             
-             linewidth = 0.7, col = "slategray") +
+  
+  # add lines to connect NDVI of different sites
+  geom_segment(aes(y = middle_jack, yend = upper_jamison,
+                   x = year, xend = year), 
+               
+               linewidth = 0.7, col = "slategray") +
   
   # add points as images
   geom_image(aes(x = year, y = middle_jack,
@@ -286,23 +288,23 @@ geom_segment(aes(y = middle_jack, yend = upper_jamison,
         panel.grid.minor = element_line(color = "azure2"),
         
         # update fonts and text size
-        plot.title = element_text(family = "roboto", size = 30, 
+        plot.title = element_text(family = "roboto", size = 46, 
                                   hjust = 0.5),
-        axis.title = element_text(family = "noto", size = 16),
-        axis.text = element_text(family = "noto", size = 14)) +
+        axis.title = element_text(family = "noto", size = 26),
+        axis.text = element_text(family = "noto", size = 24)) +
   
   # add annotation to provide information for NDVI
-  annotate(geom = "text", size = 5, family = "noto",
+  annotate(geom = "text", size = 7, family = "noto",
            label = "Dense vegetation \n Sparse vegetation",
-           x = 6.5, y = 0, col = "blue") +
+           x = 8, y = 0, col = "blue") +
   
   # add legend 
   annotation_raster(lilypad_legend, xmin = 9, xmax = 11,
-                    ymin = 2, ymax = 1.3) +
+                    ymin = 2, ymax = 1.1) +
   
   # increase x-axis length
   coord_cartesian(xlim = c(0,11)) +
-
+  
   # increase spacing between x-axis ticks
   scale_x_discrete(expand = c(0, -11))
 
@@ -314,9 +316,6 @@ frogs %>%
   group_by(reach) %>% 
   summarise(total_frogs = sum(frog_detected))
 ```
-
-
-
 
 ## Size Distribution
 
@@ -339,83 +338,28 @@ ggplot(frogs_subset, aes(x = sul_mm)) +
        title = "Distribution of Frog Length") +
   
   # update text font and size
-  theme(axis.title = element_text(family = "noto", size = 16),
-        axis.text = element_text(family = "noto", size = 16),
+  theme(axis.title = element_text(family = "noto", size = 26),
+        axis.text = element_text(family = "noto", size = 24),
         plot.title = element_text(family = "roboto",
-                                  hjust = 0.5, size = 30, vjust = 1),
+                                  hjust = 0.5, size = 46, vjust = 1),
         
         # increase plot margin
-         plot.margin = margin(1,0,0,0, "cm")) +
+        plot.margin = margin(1,0,0,0, "cm")) +
   
   # update plot to start at y-axis
-  scale_y_continuous(expand=c(0, 0)) +
-  
-  # add arrow pointing to most common sizes
-  geom_curve(aes(x = 47.5, xend = 53,
-                 y = 0.049, yend = 0.045),
-             curvature = 0.2, arrow = grid::arrow()) +
+  scale_y_continuous(expand=c(0, 0))
+
+# add arrow pointing to most common sizes
+geom_curve(aes(x = 47.6, xend = 53,
+               y = 0.047, yend = 0.045),
+           curvature = 0.2, arrow = grid::arrow()) +
   
   # add note on common frog sizes
   annotate(geom = "text", family = "noto", size = 5.5,
-           label = "Most captured frogs were between \n 53 - 55 mm in length",
-           x = 47.5, y = 0.052) +
+           label = "Most captured frogs\n were between 53 - 55 mm \n in length",
+           x = 46, y = 0.052) +
   
   # add image for measuring frog lengths
   annotation_raster(sul_img, xmax = 80, xmin = 72,
                     ymax = 0.052, ymin = 0.035)
-
 ```
-
-
-```{r, eval=FALSE}
-# subset only deteted frogs
-frogs_subset <- frogs %>% 
-  filter(frog_detected == 1)
-
-# store median and mean values
-sul_median <- median(frogs_subset$sul_mm)
-sul_mean <- mean(frogs_subset$sul_mm)
-
-
-ggplot(data = frogs_subset, aes(x = sul_mm)) +
-  geom_histogram(fill = "#4EA72E", col = "seagreen", bins = 45) +
-  theme_minimal() +
-  
-  # update axis titles
-  labs(y = "Frog Count", 
-       x = "Snout to Urostyle Length (mm)",
-       title = "Distribution of Frog Lengths") +
-  
-  # update text font and size
-  theme(axis.title = element_text(family = "noto", size = 16),
-        axis.text = element_text(family = "noto", size = 16),
-        plot.title = element_text(family = "roboto", face = "bold",
-                                  hjust = 0.5, size = 26)) +
-  
-  # start y-axis at 0 (close gap between histogram and x-axis)
-  scale_y_continuous(expand=c(0, 0)) +
-  
-  # add box for starts
-  annotate(geom = "rect", xmin = 41.5, xmax = 48.5,
-           ymin = 27, ymax = 33, fill = "lavender") +
-  
-  # add stats on frog size
-  annotate(geom = "text", x = 45, y = 30,
-           label = "Size range: 42-82 \n Mean length: 59.05 \n Median length: 58",
-           family = "noto", size = 6) +
-  
-  # add image for measuring frog length
-  annotation_raster(sul_img, xmax = 82, xmin = 72,
-                    ymax = 38, ymin = 23) +
-  
-  # add an annotation on how to measure frog length
-  annotate(geom = "text", x = 76.5, y = 39, family = "noto",
-           label = "Snout to urostyle length", size = 7)
-
-
-```
-
-
-
-
-
