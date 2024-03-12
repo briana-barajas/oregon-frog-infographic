@@ -86,6 +86,13 @@ sul_img <- png::readPNG(here("data", "sul-measurement.png"), native = TRUE)
 # leaf image ----
 dry_leaf <- here("data", "dry-leaf.png")
 leaf <- here("data", "leaf.png")
+
+# lilypad image ----
+yellow_pad <- here("data", "yellow-pad.png")
+green_pad <- here("data", "green-pad.png")
+
+# lilypad legend ----
+lilypad_legend <- png::readPNG(here("data", "lilypad-legend.png"))
 ```
 
 
@@ -207,7 +214,7 @@ ggplot(data = mf_count) +
   theme_minimal() +
   
   # customize labels and title
-  labs(title = "Number of Frogs Caughy by Sex") +
+  labs(title = "Sex of Captured Frogs") +
   
   # add labels for data points
   annotate(geom = "text", x = 351, y = 0.94, label = "350 female frogs", 
@@ -224,7 +231,7 @@ ggplot(data = mf_count) +
         axis.title.y = element_blank(),
         
         # customize fonts
-        plot.title = element_text(family = "roboto", face = "bold", size = 26,
+        plot.title = element_text(family = "roboto", size = 30,
                                   hjust = 0.5, vjust = -10),
         axis.text.y = element_blank(),
         axis.title.x = element_blank())
@@ -232,37 +239,6 @@ ggplot(data = mf_count) +
 ```
 
 ## Annual NDVI
-```{r}
-
-# Plot annual NDVI for two different sites
-ggplot(env, aes(x = year, y = mdNDVI, col = reach,
-                linetype = reach)) +
-  geom_line(linewidth = 1) +
-  
-  # update colors (match based on vegetation density)
-  scale_color_manual(values = c("chartreuse4", "goldenrod3")) +
-  
-  # update to auto theme
-  theme_minimal() +
-  
-  # update axis labels/title
-  labs(col = "Site Name",
-       y = "Average Summer NDVI",
-       x = "Survey Year",
-       title = "Vegetation Density at Survey Sites") +
-  
-  # update text fonts and size
-  theme(plot.title = element_text(family = "roboto", size = 24,
-                                  hjust = 0.5, face = "bold"),
-        axis.text = element_text(family = "noto", size = 14),
-        axis.title = element_text(family = "noto", size = 16)) +
-  
-  # add captions on interpreting NDVI
-  annotate(geom = "text", x = 2019.5, y = 1.5,
-           label = "Middle Jack has more dense \n vegetation than Upper Jamison", family = "noto", size = 5)
-
-```
-
 
 ```{r}
 # prepare NDVI data for dumbell plot
@@ -274,9 +250,6 @@ env_db_data <- env %>%
   mutate(year = as.factor(year),
          leaf = green_pad,
          dry_leaf = yellow_pad)
-
-yellow_pad <- here("yellow-pad.png")
-green_pad <- here("green-pad.png")
 
 # create dumbell plot of annual NDVI
 ggplot(env_db_data) +
@@ -313,30 +286,49 @@ geom_segment(aes(y = middle_jack, yend = upper_jamison,
         panel.grid.minor = element_line(color = "azure2"),
         
         # update fonts and text size
-        plot.title = element_text(family = "roboto", size = 26,
-                                  face = "bold", hjust = 0.5),
+        plot.title = element_text(family = "roboto", size = 30, 
+                                  hjust = 0.5),
         axis.title = element_text(family = "noto", size = 16),
         axis.text = element_text(family = "noto", size = 14)) +
   
   # add annotation to provide information for NDVI
   annotate(geom = "text", size = 5, family = "noto",
            label = "Dense vegetation \n Sparse vegetation",
-           x = 6.5, y = 0, col = "blue")
+           x = 6.5, y = 0, col = "blue") +
+  
+  # add legend 
+  annotation_raster(lilypad_legend, xmin = 9, xmax = 11,
+                    ymin = 2, ymax = 1.3) +
+  
+  # increase x-axis length
+  coord_cartesian(xlim = c(0,11)) +
+
+  # increase spacing between x-axis ticks
+  scale_x_discrete(expand = c(0, -11))
 
 ```
+
+```{r, eval=FALSE}
+# count number of frogs caught per reach
+frogs %>% 
+  group_by(reach) %>% 
+  summarise(total_frogs = sum(frog_detected))
+```
+
 
 
 
 ## Size Distribution
 
-```{r, eval=FALSE}
+```{r}
 # subset to only include frogs that were captured
 frogs_subset <- frogs %>% 
   filter(frog_detected == 1)
 
+
 # plot density of frog size
 ggplot(frogs_subset, aes(x = sul_mm)) +
-  geom_density(fill = "#4EA72E", alpha = 0.8) +
+  geom_density(fill = "#4EA72E", col ="seagreen", alpha = 0.8) +
   
   # change standard theme
   theme_minimal() +
@@ -349,8 +341,11 @@ ggplot(frogs_subset, aes(x = sul_mm)) +
   # update text font and size
   theme(axis.title = element_text(family = "noto", size = 16),
         axis.text = element_text(family = "noto", size = 16),
-        plot.title = element_text(family = "roboto", face = "bold",
-                                  hjust = 0.5, size = 26, vjust = 0)) +
+        plot.title = element_text(family = "roboto",
+                                  hjust = 0.5, size = 30, vjust = 1),
+        
+        # increase plot margin
+         plot.margin = margin(1,0,0,0, "cm")) +
   
   # update plot to start at y-axis
   scale_y_continuous(expand=c(0, 0)) +
@@ -362,18 +357,17 @@ ggplot(frogs_subset, aes(x = sul_mm)) +
   
   # add note on common frog sizes
   annotate(geom = "text", family = "noto", size = 5.5,
-           label = "Most frogs caught were between \n 53 - 55 mm in length",
+           label = "Most captured frogs were between \n 53 - 55 mm in length",
            x = 47.5, y = 0.052) +
   
   # add image for measuring frog lengths
   annotation_raster(sul_img, xmax = 80, xmin = 72,
                     ymax = 0.052, ymin = 0.035)
 
-
 ```
 
 
-```{r}
+```{r, eval=FALSE}
 # subset only deteted frogs
 frogs_subset <- frogs %>% 
   filter(frog_detected == 1)
