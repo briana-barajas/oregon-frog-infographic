@@ -69,19 +69,19 @@ query <- "SELECT * FROM usfws_complete_species_current_range_2 WHERE SCINAME='Ra
 
 range_map <- st_read(here("data", "usfws_complete_species_current_range",
                           "usfws_complete_species_current_range_2.shp"),
-                     query = query) %>% 
-  st_make_valid() %>% 
+                     query = query) %>%
+  st_make_valid() %>%
   clean_names()
 
 # full state maps ----
-state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500k.shp")) %>% 
-  st_make_valid() %>% 
-  clean_names() %>% 
+state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500k.shp")) %>%
+  st_make_valid() %>%
+  clean_names() %>%
   filter(name == "Oregon" | name == "Washington")
 
 # create a coordinate point for data collection area
-data_location <- data.frame(lat = c(43.224875), 
-                            lon = c(-121.587244)) %>% 
+data_location <- data.frame(lat = c(43.224875),
+                            lon = c(-121.587244)) %>%
   st_as_sf(coords = c("lon", "lat"), crs = st_crs(state_map))
 
 ## ========================================
@@ -193,9 +193,198 @@ ggplot() +
   
   # adjust title theme and size
   theme(plot.title = element_text(hjust = 0.5, vjust = 0, 
-                                  family = "roboto", size = 32))
+                                  family = "roboto", size = 30))
 ```
 
 ### Males vs. Females
 
+Since I was comparing two counts, I wanted to find a way to apply the frog theme to a bar chart. I was originally looking at lollipop charts when I got the idea to connect the point to a curved line, so it appeared as though the frog was jumping. Since the data presented in this plot was so simple, I wanted to remove as many of the plot elements as possible. For example, instead of a legend I directly wrote out the frog counts by each point. I also made the male and female frog different colors, which I kept consistent in the final inforgraphic caption. Additionally, after calculating the sum I changed the sex column to be the same character string so they would both be on the same axis.
+
+```{r}
+## ............. Data Preparation..................
+# create data subset of male vs. female frogs captured
+mf_count <- frogs %>% 
+  group_by(sex) %>% 
+  summarise(frog_catch = sum(frog_detected))
+
+# add column with male/female frog images
+mf_count$image <- c(frog_female, frog_male)
+
+# change sex to same value so frogs can be on the same line
+mf_count$sex <- "A"
+
+## ..................Plot..........................
+
+# create plot of male vs. female frogs caught
+ggplot(data = mf_count) +
+  
+  # add images of frogs for male and female
+  geom_image(aes(x = frog_catch, y = sex, image = image), 
+             size = 0.2) +
+  
+  # add hop line for males
+  geom_curve(aes(x = 0, xend = 267, y = 1, yend = 1), linetype = 2,
+             curvature = -0.4, col = "#18BA9A", linewidth = 1) +
+  
+  # add hop line for females
+  geom_curve(aes(x = 0, xend = 350, y = 1, yend = 1), linetype = 2,
+             curvature = -0.4, col = "#754edb", linewidth = 1) +
+  
+  # expand x-axis to add space for text
+  coord_cartesian(xlim = c(0, 360)) +
+  
+  # pre-set theme
+  theme_minimal() +
+  
+  # customize labels and title
+  labs(title = "Sex of Captured Frogs") +
+  
+  # add labels for data points
+  annotate(geom = "text", x = 342.5, y = 0.87, label = "350 female frogs", 
+           family = "noto", size = 4, col = "#754edb") +
+  annotate(geom = "text", x = 259, y = 0.87, label = "267 male frogs",
+           family = "noto", size = 4, col = "#18BA9A") +
+  
+  # remove gridlines
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        
+        # remove labels that aren't needed
+        axis.text.x = element_blank(),
+        axis.title.y = element_blank(),
+        
+        # customize fonts
+        plot.title = element_text(family = "roboto", size = 30,
+                                  hjust = 0.5, vjust = -9.5),
+        axis.text.y = element_blank(),
+        axis.title.x = element_blank())
+```
+
+### Size Distribution
+
+Since the size of frogs are a continuous range, I wanted to focus on which sizes were most common instead of directly including counts. Ideally, the distribution of frogs caught should be normally distributed, so I used arrows and notes to highlight where this was not the case. I chose the green color to continue the frog theme, and kept all my annotations black so they popped against the white background. I decided to still keep the gridlines to the two peaks could be more easily compared. Different animals have different standards for being measured, so I wanted to be sure to include an image that shows how the frogs were measured. Frogs are measured from snout to a feature called the urostyle. I decided this would be too difficult to describe in an infographic, so I narrowed down the definition to "length."
+
+```{r}
+## ............. Data Preparation..................
+# subset to only include frogs that were captured
+frogs_subset <- frogs %>% 
+  filter(frog_detected == 1)
+
+## ..................Plot..........................
+# plot density of frog size
+ggplot(frogs_subset, aes(x = sul_mm)) +
+  geom_density(fill = "#4EA72E", col ="seagreen", alpha = 0.8) +
+  
+  # change standard theme
+  theme_minimal() +
+  
+  # update axis titles
+  labs(y = "Density", 
+       x = "Length (mm)",
+       title = "Distribution of Frog Length") +
+  
+  # update text font and size
+  theme(axis.title = element_text(family = "noto", size = 16),
+        axis.text = element_text(family = "noto", size = 14),
+        plot.title = element_text(family = "roboto",
+                                  hjust = 0.5, size = 30, vjust = 1),
+        
+        # increase plot margin
+        plot.margin = margin(1,0,0,0, "cm")) +
+  
+  # update plot to start at y-axis
+  scale_y_continuous(expand=c(0, 0)) +
+  
+  # add arrow pointing to most common sizes
+  geom_curve(aes(x = 47.6, xend = 53,
+                 y = 0.047, yend = 0.045),
+             curvature = 0.2, arrow = grid::arrow()) +
+  
+  # add note on common frog sizes
+  annotate(geom = "text", family = "noto", size = 3,
+           label = "Most captured frogs\n were between 53 - 55 mm \n in length",
+           x = 46, y = 0.051) +
+  
+  # add image for measuring frog lengths
+  annotation_raster(sul_img, xmax = 82, xmin = 72,
+                    ymax = 0.052, ymin = 0.033)
+```
+
+### Vegetation
+
+For vegetation, I wanted to highlight several parts of the data including year, average summer normalized difference vegetation index (NDVI), and frog count. To avoid overly complex figures, I decided to focus only on NDVI over time and compare frog counts directly within the graphic. I originally had a line graph that demonstrated the Middle Jack site consistently had a higher NDVI than Upper Jamison. To highlight the differences more than the trends over time, I decided to create a dumbell plot instead. I came up with the idea to have lilypads in a pond, and decided that the color of the lilypad should match the sight. Since Middle Jack has more dense vegetation (higher NDVI), I made the leaf more green than the one for Upper Jamison. I also know that NDVI is not intuitive, so I added a line at 0 and text highlighting that values above zero indicate more dense vegetation.
+
+```{r}
+## ............. Data Preparation..................
+# prepare NDVI data for dumbell plot
+env_db_data <- env %>% 
+  filter(year <= 2019) %>% 
+  select(c("year", "mdNDVI", "reach")) %>% 
+  pivot_wider(names_from = reach, values_from = mdNDVI) %>% 
+  clean_names() %>% 
+  mutate(year = as.factor(year),
+         leaf = green_pad,
+         dry_leaf = yellow_pad)
+
+## ..................Plot..........................
+# create dumbell plot of annual NDVI
+ggplot(env_db_data) +
+  
+  # add line for 0 axis
+  geom_hline(yintercept = 0, linetype = 3) +
+  
+  # add lines to connect NDVI of different sites
+  geom_segment(aes(y = middle_jack, yend = upper_jamison,
+                   x = year, xend = year), 
+               
+               linewidth = 0.7, col = "slategray") +
+  
+  # add points as images
+  geom_image(aes(x = year, y = middle_jack,
+                 image = leaf), size = 0.08) +
+  geom_image(aes(x = year, y = upper_jamison,
+                 image = dry_leaf), size = 0.08) +
+  
+  # change to standard theme
+  theme_minimal() +
+  
+  # update axis names and titles
+  labs(y = "NDVI",
+       x = "Year",
+       title = "Average Summer NDVI") +
+  
+  # update theme
+  # update background and grid color
+  theme(panel.background = element_rect(fill = "aliceblue",
+                                        color = "lightblue3",
+                                        linewidth = 1),
+        panel.grid.major = element_line(color = "azure2"),
+        panel.grid.minor = element_line(color = "azure2"),
+        
+        # update fonts and text size
+        plot.title = element_text(family = "roboto", size = 30, 
+                                  hjust = 0.5),
+        axis.title = element_text(family = "noto", size = 16),
+        axis.text = element_text(family = "noto", size = 14)) +
+  
+  # add annotation to provide information for NDVI
+  annotate(geom = "text", size = 4, family = "noto",
+           label = "Dense vegetation \n Sparse vegetation",
+           x = 7, y = 0, col = "blue") +
+  
+  # add legend 
+  annotation_raster(lilypad_legend, xmin = 8.7, xmax = 11,
+                    ymin = 2, ymax = 1.1) +
+  
+  # increase x-axis length
+  coord_cartesian(xlim = c(0,11)) +
+  
+  # increase spacing between x-axis ticks
+  scale_x_discrete(expand = c(0, -11))
+```
+
 ## Infographic
+
+After creating my plots in R, I switched over to Canva to create the final infographic. Unfortunately, I realized that I had not considered some of the requirements for exporting images using `ggsave`. Instead of re-coding the plots, I decided to adjust some of the final titles and images in Canva. Since my overarching question is not clear on graphics alone, I started my infographic with a short background section. I also added a real photo of the Oregon Spotted Frog to improve visualization quality. I added vegetation as the final section since it required the most context.
+
+![](infographic.png)
