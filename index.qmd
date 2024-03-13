@@ -1,0 +1,201 @@
+---
+title: "Visualizing Frog Catch Data"
+subtitle: "Oregon Spotted frog surveys from Jack Creek, Oregon"
+author: "Briana Barajas"
+date: 2024-03-12
+format:
+  html:
+    code-fold: true
+    code-summary: "View Code"
+    toc: true
+    toc_float: true
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
+
+```{r, results='hide', include=FALSE}
+## ========================================
+##            Load libraries           ----
+## ========================================
+
+library(tidyverse) #data wrangling
+library(here)
+library(janitor)
+library(readxl)
+
+library(ggspatial) # mapping
+library(sf)
+
+library(ggridges) # ggplot customizations
+library(showtext)
+library(ggimage)
+library(patchwork)
+
+## ========================================
+##            Import Google Fonts      ----
+## ========================================
+font_add_google(name = "Noto Sans", family = "noto")
+font_add_google(name = "Roboto Slab", family = "roboto")
+
+# enable {showtext} for rendering
+showtext_auto()
+```
+
+## Overarching Question
+
+Since capturing every individual within a population is not feasible, alternative methods must be used to estimate wildlife populations. The capture-mark-recapture technique (herein CMR) is one surveying technique used to calculate estimations of population, or survival over time. As with many mathematical analyses, there are some assumptions that much be met to calculate survival using CMR data. I decided to focus on survival since the data used here was used in a publication that commented on the species survival over several years ([Rowe et. al](https://wildlife.onlinelibrary.wiley.com/doi/10.1002/jwmg.22496)). To calculate survival, it is assumed that the likelihood of catching any individual is the same for all individuals in the population. With this in mind, I created several visualizations that answer the question, **what factors affect how easy it is to capture a frog?**
+
+## About the Data
+
+For the final visualizations, I used two different data frames within the same [data publication](https://www.usgs.gov/data/oregon-spotted-frog-rana-pretiosa-captures-and-after-drought-mitigation-jack-creek-oregon-2009) by the United States Geological Survey (USGS). The first data frame contained the data on CMR surveys of the Oregon Spotted frog (Rana pretiosa) from 2009-2021. The data was initially in spread so that every year and visit per year was an individual column of 0s and 1s, indicating whether or not an individual was captured. Using `pivot_longer` , I split year and visit number into individual columns. This allowed me to easily sum the data so that I could count the number of frogs detected based on particular groups (reach, size, and size). The second data frame contained data on environmental variables around the time the surveys were conducted. I only focused on the NDVI column in this data set, as I hypothesized that vegetation density might make it easier or harder to catch frogs. The U.S. Fish & Wildlife service also hosts a geographic data set with the species range of several threatened, and endangered species. I used the [species range data](https://ecos.fws.gov/ecp/species/6633) to create a custom map for the infographic.
+
+### Read in data
+
+```{r, results='hide'}
+## ========================================
+##             Read in Data            ----
+## ========================================
+# read frog data ----
+frogs_raw <- read_csv(here("data", "frog_cmr", "cmrData.csv")) %>% 
+  clean_names()
+
+# read water data ----
+env_raw <- read_csv(here("data", "frog_cmr", "waterCov.csv"))
+
+# species range data ----
+query <- "SELECT * FROM usfws_complete_species_current_range_2 WHERE SCINAME='Rana pretiosa' "
+
+range_map <- st_read(here("data", "usfws_complete_species_current_range",
+                          "usfws_complete_species_current_range_2.shp"),
+                     query = query) %>% 
+  st_make_valid() %>% 
+  clean_names()
+
+# full state maps ----
+state_map <- st_read(here("data", "cb_2018_us_state_500k", "cb_2018_us_state_500k.shp")) %>% 
+  st_make_valid() %>% 
+  clean_names() %>% 
+  filter(name == "Oregon" | name == "Washington")
+
+# create a coordinate point for data collection area
+data_location <- data.frame(lat = c(43.224875), 
+                            lon = c(-121.587244)) %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = st_crs(state_map))
+
+## ========================================
+##             Read in Images          ----
+## ========================================
+# frog icons ----
+frog_female <- here("data", "frog-female.png")
+frog_male <- here("data", "frog-male.png")
+
+# jack creek map ----
+creek_img <- png::readPNG(here("data", "jack-creek-inset.png"), native = TRUE)
+
+# sul image ----
+sul_img <- png::readPNG(here("data", "sul-measurement.png"), native = TRUE)
+
+# lilypad image ----
+yellow_pad <- here("data", "yellow-pad.png")
+green_pad <- here("data", "green-pad.png")
+
+# lilypad legend ----
+lilypad_legend <- png::readPNG(here("data", "lilypad-legend.png"))
+```
+
+### Data Wrangling
+
+```{r, results='hide'}
+## ========================================
+##        Wrangle environmental data   ----
+## ========================================
+env <- env_raw %>% 
+  
+  # select sites of interest (most surveyed)
+  filter(reach == "Middle Jack" | reach == "Upper Jamison")
+
+## ========================================
+##          Wrangle frog CMR data      ----
+## ========================================
+frogs <- frogs_raw %>% 
+  
+  # filter to most surveyed reaches
+  filter(reach == "Middle Jack" | reach == "Upper Jamison") %>% 
+  
+  # pivot to split year from detected column
+  pivot_longer(cols = 5:43,
+               names_to = "year_visit",
+               values_to = "frog_detected") %>% 
+  
+  # split year and visit number into two columns %>% 
+  separate(year_visit, 
+           c("year", "visit"),
+           '_') %>% 
+  
+  # remove x that precedes the year (x2010, x2011)
+  mutate(year = str_remove(year, 'x')) %>% 
+  
+  # rename size to include units
+  rename(sul_mm = sul) %>% 
+  
+  # remove years w/no frog surveys at Upper Jamison
+  filter(year %in% c(2009:2019))
+
+
+# clean environment
+rm(env_raw, frogs_raw, query)
+```
+
+## Creating Data Visualizations
+
+### Species Range Map
+
+The species range map was not technically one of my visualizations, so I spent less time on it. Still, I wanted to ensure the theme matched in terms of font and color. I selected a light green, as it popped on the gray and match the overall frog theme. The inset map is an image from the original publication. I added it to highlight the two sites that would be compared in the "vegetation" portion.
+
+```{r}
+# create species range map
+ggplot() +
+  
+  # map states & species range
+  geom_sf(data = state_map, col = "slategray") +
+  geom_sf(data = range_map, fill = "yellowgreen", col = "black") +
+  
+  # add box around study area 
+  geom_sf(data = data_location, shape = 15, size = 6, col = "dodgerblue",
+          alpha = 0.45) +
+  
+  # add text annotation for study area
+  annotate(geom = "text", x = -118, y = 45.4, label = "Study Area \n Jack Creek, Oregon", family = "noto", size = 4, col = "black") +
+  
+  # expand axis limits so inset image does not get cropped
+  coord_sf(xlim = c(-125, -116), ylim = c(41.5, 49.5), expand = FALSE) +
+  
+  # add lines connecting study area to inset map
+  geom_curve(aes(x = -120, xend = -121.50,
+                 y = 44.98, yend = 43.224875),
+             curvature = 0, col = "black", linewidth = 0.7) +
+  
+  geom_curve(aes(x = -120, xend = -121.50,
+                 y = 43.02, yend = 43.224875),
+             curvature = 0, col = "black", linewidth = 0.7) +
+  
+  # add map of study area
+  annotation_raster(creek_img, xmax = -120, xmin = -116,
+                    ymax = 45, ymin = 43) +
+  
+  # update general theme to remove background
+  theme_void() +
+  
+  # add title
+  labs(title = "Species Range Map") +
+  
+  # adjust title theme and size
+  theme(plot.title = element_text(hjust = 0.5, vjust = 0, 
+                                  family = "roboto", size = 32))
+```
+
+### Males vs. Females
+
+## Infographic
