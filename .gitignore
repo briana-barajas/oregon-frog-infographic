@@ -5,5 +5,4 @@
 
 data/
 *_files/
-*.html
 .DS_Store
