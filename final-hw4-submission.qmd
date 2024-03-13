@@ -89,10 +89,6 @@ creek_img <- png::readPNG(here("data", "jack-creek-inset.png"), native = TRUE)
 # sul image ----
 sul_img <- png::readPNG(here("data", "sul-measurement.png"), native = TRUE)
 
-# leaf image ----
-dry_leaf <- here("data", "dry-leaf.png")
-leaf <- here("data", "leaf.png")
-
 # lilypad image ----
 yellow_pad <- here("data", "yellow-pad.png")
 green_pad <- here("data", "green-pad.png")
@@ -116,6 +112,7 @@ frogs <- frogs_raw %>%
   # filter to most surveyed reaches
   filter(reach == "Middle Jack" | reach == "Upper Jamison") %>% 
   
+  # pivot to split year from detected column
   pivot_longer(cols = 5:43,
                names_to = "year_visit",
                values_to = "frog_detected") %>% 
@@ -125,7 +122,7 @@ frogs <- frogs_raw %>%
            c("year", "visit"),
            '_') %>% 
   
-  # remove x that precedes the year (x2010, x2011, etc)
+  # remove x that precedes the year (x2010, x2011)
   mutate(year = str_remove(year, 'x')) %>% 
   
   # rename size to include units
@@ -134,8 +131,6 @@ frogs <- frogs_raw %>%
   # remove years w/no frog surveys at Upper Jamison
   filter(year %in% c(2009:2019))
 
-# crop spp range ----
-# range_map <- st_intersection(range_map, state_map)
 
 rm(env_raw, frogs_raw, query)
 ```
@@ -155,7 +150,7 @@ ggplot() +
           alpha = 0.45) +
   
   # add text annotation for study area
-  annotate(geom = "text", x = -118, y = 45.4, label = "Study Area \n Jack Creek, Oregon", family = "noto", size = 9, col = "black") +
+  annotate(geom = "text", x = -118, y = 45.4, label = "Study Area \n Jack Creek, Oregon", family = "noto", size = 5.5, col = "black") +
   
   # expand axis limits so inset image does not get cropped
   coord_sf(xlim = c(-125, -116), ylim = c(41.5, 49.5), expand = FALSE) +
@@ -176,9 +171,12 @@ ggplot() +
   # update general theme to remove background
   theme_void() +
   
-  # add and customize title
+  # add title
   labs(title = "Species Range Map") +
-  theme(plot.title = element_text(hjust = 0.5, vjust = -0.5, family = "roboto", size = 46))
+  
+  # adjust title theme and size
+  theme(plot.title = element_text(hjust = 0.5, vjust = 0, 
+                                  family = "roboto", size = 36))
 ```
 
 ## Male vs. Female Count
